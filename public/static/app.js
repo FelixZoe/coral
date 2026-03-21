@@ -86,9 +86,13 @@
   // ==============================================
   //  NAV INDICATOR
   // ==============================================
+  let indicatorTimer = null;
+
   function moveIndicator(el) {
     const ind = document.getElementById('navIndicator');
     if (!ind || !el) return;
+    // Cancel any pending snap-back
+    if (indicatorTimer) { clearTimeout(indicatorTimer); indicatorTimer = null; }
     const nav = el.parentElement;
     const navRect = nav.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
@@ -98,11 +102,16 @@
   }
 
   function clearIndicator() {
-    const ind = document.getElementById('navIndicator');
-    if (!ind) return;
-    const active = document.querySelector('.nav-link.active');
-    if (active) moveIndicator(active);
-    else ind.classList.remove('visible');
+    // Delay snap-back so fast mouse moves between links don't cause flicker
+    if (indicatorTimer) clearTimeout(indicatorTimer);
+    indicatorTimer = setTimeout(() => {
+      indicatorTimer = null;
+      const ind = document.getElementById('navIndicator');
+      if (!ind) return;
+      const active = document.querySelector('.nav-link.active');
+      if (active) moveIndicator(active);
+      else ind.classList.remove('visible');
+    }, 120);
   }
 
   function initNavIndicator() {
