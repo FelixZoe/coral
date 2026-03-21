@@ -2021,6 +2021,107 @@ a { text-decoration: none; color: inherit; }
   padding-bottom: 30px;
 }
 
+/* === Downloads Search === */
+.dl-search-wrap {
+  max-width: 700px;
+  margin: 0 auto 16px;
+}
+
+.dl-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dl-search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.dl-search-input {
+  width: 100%;
+  padding: 10px 38px 10px 38px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dl-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dl-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(232, 168, 56, 0.12);
+}
+
+.dl-search-input:focus ~ .dl-search-icon,
+.dl-search-input:focus + .dl-search-icon {
+  color: var(--accent);
+}
+
+.dl-search-box:focus-within .dl-search-icon {
+  color: var(--accent);
+}
+
+.dl-search-clear {
+  position: absolute;
+  right: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: var(--hover-bg);
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dl-search-clear:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.dl-search-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  padding-left: 4px;
+  min-height: 1em;
+}
+
+.dl-no-results {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-tertiary);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.dl-no-results i {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 10px;
+  opacity: 0.35;
+}
+
+.dl-no-results p {
+  font-size: 0.88rem;
+}
+
 /* === Downloads List === */
 .downloads-list {
   display: flex;

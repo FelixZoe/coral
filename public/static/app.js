@@ -248,6 +248,130 @@
   }
 
   // ==============================================
+  //  DOWNLOAD SEARCH — Relevance-based fuzzy search
+  // ==============================================
+  function initDownloadSearch() {
+    const input = document.getElementById('dlSearch');
+    const clearBtn = document.getElementById('dlSearchClear');
+    const list = document.getElementById('dlList');
+    const hint = document.getElementById('dlSearchHint');
+    const noResults = document.getElementById('dlNoResults');
+    const countBadge = document.getElementById('dlCount');
+
+    if (!input || !list) return;
+
+    const cards = Array.from(list.querySelectorAll('.download-card'));
+    const totalCount = cards.length;
+
+    // Build search index
+    const index = cards.map(card => {
+      const raw = (card.getAttribute('data-search') || '').toLowerCase();
+      const name = (card.querySelector('.download-name')?.textContent || '').toLowerCase();
+      return { el: card, raw, name };
+    });
+
+    // Relevance scoring: higher = better match
+    function score(entry, terms) {
+      let s = 0;
+      const { raw, name } = entry;
+      for (const t of terms) {
+        if (!t) continue;
+        // Exact name match → highest
+        if (name === t) { s += 100; continue; }
+        // Name starts with term
+        if (name.startsWith(t)) { s += 60; continue; }
+        // Name contains term
+        if (name.includes(t)) { s += 40; continue; }
+        // Raw data (type/ext/tags) contains term
+        if (raw.includes(t)) { s += 20; continue; }
+        // Fuzzy: check if all chars of term appear in order
+        let fi = 0;
+        for (let ci = 0; ci < raw.length && fi < t.length; ci++) {
+          if (raw[ci] === t[fi]) fi++;
+        }
+        if (fi === t.length) { s += 5; continue; }
+        // No match at all for this term → penalize heavily
+        s -= 50;
+      }
+      return s;
+    }
+
+    function doSearch() {
+      const query = input.value.trim().toLowerCase();
+      clearBtn.style.display = query ? 'flex' : 'none';
+
+      if (!query) {
+        // Show all
+        cards.forEach(c => { c.style.display = ''; c.style.order = ''; });
+        if (hint) hint.textContent = '';
+        if (noResults) noResults.style.display = 'none';
+        list.style.display = '';
+        if (countBadge) countBadge.textContent = countBadge.getAttribute('data-original') || countBadge.textContent;
+        return;
+      }
+
+      // Save original count text
+      if (countBadge && !countBadge.getAttribute('data-original')) {
+        countBadge.setAttribute('data-original', countBadge.textContent);
+      }
+
+      const terms = query.split(/\s+/).filter(Boolean);
+      const scored = index.map((entry, i) => ({ i, s: score(entry, terms) }));
+      scored.sort((a, b) => b.s - a.s);
+
+      let visibleCount = 0;
+      scored.forEach(({ i, s }, order) => {
+        const card = cards[i];
+        if (s > 0) {
+          card.style.display = '';
+          card.style.order = String(order);
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+          card.style.order = '';
+        }
+      });
+
+      if (noResults) noResults.style.display = visibleCount === 0 ? '' : 'none';
+      list.style.display = visibleCount === 0 ? 'none' : '';
+
+      if (hint) {
+        hint.textContent = visibleCount > 0
+          ? (lang === 'zh' ? `找到 ${visibleCount} 个匹配文件` : `${visibleCount} file${visibleCount !== 1 ? 's' : ''} found`)
+          : '';
+      }
+
+      if (countBadge) {
+        countBadge.textContent = lang === 'zh'
+          ? `${visibleCount} / ${totalCount} 个文件`
+          : `${visibleCount} / ${totalCount} files`;
+      }
+    }
+
+    // Debounced input
+    let timer;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(doSearch, 150);
+    });
+
+    // Clear button
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        doSearch();
+        input.focus();
+      });
+      clearBtn.style.display = 'none';
+    }
+
+    // Enter key → no form submit
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; doSearch(); }
+    });
+  }
+
+  // ==============================================
   //  CARD ENTRANCE ANIMATION
   // ==============================================
   function initAOS() {
@@ -272,6 +396,7 @@
     initCardEffects();
     initStatCountUp();
     initDownloadButtons();
+    initDownloadSearch();
     initAOS();
   }
 
