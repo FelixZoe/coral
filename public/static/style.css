@@ -136,9 +136,9 @@ a { text-decoration: none; color: inherit; }
 }
 
 .container {
-  max-width: 860px;
+  max-width: 1060px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 28px;
 }
 
 /* === Header === */
@@ -993,8 +993,8 @@ a { text-decoration: none; color: inherit; }
     linear-gradient(160deg, var(--bg-card) 0%, var(--accent-soft) 50%, color-mix(in srgb, var(--accent) 6%, var(--bg-card)) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 34px 32px 30px;
-  margin-bottom: 12px;
+  padding: 36px 40px 34px;
+  margin-bottom: 14px;
   overflow: hidden;
 }
 
@@ -1061,7 +1061,7 @@ a { text-decoration: none; color: inherit; }
 .hero-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 26px;
   position: relative;
   z-index: 2;
 }
@@ -1072,7 +1072,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .hero-avatar {
-  width: 80px; height: 80px;
+  width: 90px; height: 90px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--accent-soft);
@@ -1124,7 +1124,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .hero-greeting {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-tertiary);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -1133,7 +1133,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .hero-name {
-  font-size: 1.9rem;
+  font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -1151,9 +1151,9 @@ a { text-decoration: none; color: inherit; }
 }
 
 .hero-tagline {
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-top: 5px;
+  margin-top: 6px;
   font-weight: 500;
   line-height: 1.5;
 }
@@ -1161,9 +1161,9 @@ a { text-decoration: none; color: inherit; }
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
-  padding: 4px 12px;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 14px;
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 99px;
@@ -1180,16 +1180,16 @@ a { text-decoration: none; color: inherit; }
 /* Hero socials */
 .hero-socials {
   display: flex;
-  gap: 7px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 16px;
   position: relative;
   z-index: 2;
 }
 
 .hero-social {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1221,22 +1221,22 @@ a { text-decoration: none; color: inherit; }
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px 22px;
-  margin-bottom: 10px;
+  padding: 18px 28px;
+  margin-bottom: 14px;
 }
 
 .about-bio {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--text-secondary);
   line-height: 1.65;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .about-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  font-size: 0.72rem;
+  gap: 16px;
+  font-size: 0.78rem;
   color: var(--text-tertiary);
 }
 
@@ -1255,15 +1255,15 @@ a { text-decoration: none; color: inherit; }
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .stat-pill {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px 10px;
+  padding: 18px 14px;
   text-align: center;
   text-decoration: none;
   color: inherit;
@@ -1303,7 +1303,7 @@ a { text-decoration: none; color: inherit; }
 
 .stat-pill-num {
   display: block;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary);
@@ -1322,7 +1322,7 @@ a { text-decoration: none; color: inherit; }
 
 .stat-pill-label {
   display: block;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   color: var(--text-tertiary);
   font-weight: 600;
   text-transform: uppercase;
@@ -1355,15 +1355,15 @@ a { text-decoration: none; color: inherit; }
 .nav-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .nav-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 16px;
+  padding: 18px 22px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1401,12 +1401,12 @@ a { text-decoration: none; color: inherit; }
 .nav-card-trending:hover { border-color: rgba(239,68,68,0.3); box-shadow: 0 8px 28px rgba(239,68,68,0.1); }
 
 .nav-card-icon {
-  width: 36px; height: 36px;
-  border-radius: 9px;
+  width: 44px; height: 44px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
   transition: all 0.35s ease;
 }
@@ -1431,15 +1431,15 @@ a { text-decoration: none; color: inherit; }
 }
 
 .nav-card-body h3 {
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .nav-card-body p {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   color: var(--text-tertiary);
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .nav-card-arrow {
@@ -1463,7 +1463,7 @@ a { text-decoration: none; color: inherit; }
     var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 24px 28px;
+  padding: 30px 36px;
   text-align: center;
   position: relative;
 }
@@ -1478,7 +1478,7 @@ a { text-decoration: none; color: inherit; }
 
 .home-quote-text {
   font-family: var(--font-serif);
-  font-size: 0.98rem;
+  font-size: 1.08rem;
   font-style: italic;
   line-height: 1.7;
   color: var(--text-primary);
@@ -1566,15 +1566,15 @@ a { text-decoration: none; color: inherit; }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .hero {
-    padding: 34px 28px 30px;
+    padding: 34px 32px 30px;
   }
 
   .hero-name {
-    font-size: 1.75rem;
+    font-size: 1.85rem;
   }
 
   .hero-avatar {
-    width: 72px; height: 72px;
+    width: 80px; height: 80px;
   }
 }
 
@@ -2105,7 +2105,7 @@ a { text-decoration: none; color: inherit; }
 
 /* === Downloads Search === */
 .dl-search-wrap {
-  max-width: 700px;
+  max-width: 860px;
   margin: 0 auto 16px;
 }
 
@@ -2189,7 +2189,7 @@ a { text-decoration: none; color: inherit; }
   text-align: center;
   padding: 48px 20px;
   color: var(--text-tertiary);
-  max-width: 700px;
+  max-width: 860px;
   margin: 0 auto;
 }
 
@@ -2210,7 +2210,7 @@ a { text-decoration: none; color: inherit; }
   flex-direction: column;
   gap: 0;
   padding-bottom: 30px;
-  max-width: 700px;
+  max-width: 860px;
   margin: 0 auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
