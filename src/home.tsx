@@ -59,6 +59,9 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
             <a href="#downloads" class="nav-link">{t('nav', 'downloads', lang)}</a>
           </nav>
           <div class="header-actions">
+            <a href="/admin" class="admin-entry" title={lang === 'zh' ? '后台管理' : 'Admin Panel'}>
+              <i class="fa-solid fa-lock"></i>
+            </a>
             <a href={`/api/set-lang?lang=${otherLang}`} class="lang-toggle" id="langToggle" title={lang === 'zh' ? 'Switch to English' : '切换到中文'}>
               <i class="fa-solid fa-globe"></i>
               <span>{langLabel}</span>

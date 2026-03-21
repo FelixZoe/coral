@@ -237,6 +237,28 @@ a { text-decoration: none; color: inherit; }
   box-shadow: var(--shadow-glow);
 }
 
+.admin-entry {
+  width: 38px; height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  transition: all var(--transition);
+  text-decoration: none;
+  opacity: 0.5;
+}
+
+.admin-entry:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
 .theme-toggle {
   width: 38px; height: 38px;
   border: 1px solid var(--border);
