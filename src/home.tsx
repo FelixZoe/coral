@@ -11,9 +11,25 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
 
   const content = (
     <main class="home-main">
+      {/* ===== SIDE DECORATIONS (widescreen) ===== */}
+      <div class="home-side-decor home-side-decor-left">
+        <div class="side-orb side-orb-1"></div>
+        <div class="side-orb side-orb-3"></div>
+        <div class="side-line side-line-1"></div>
+        <div class="side-dot side-dot-1"></div>
+        <div class="side-dot side-dot-2"></div>
+      </div>
+      <div class="home-side-decor home-side-decor-right">
+        <div class="side-orb side-orb-2"></div>
+        <div class="side-orb side-orb-4"></div>
+        <div class="side-line side-line-2"></div>
+        <div class="side-dot side-dot-3"></div>
+      </div>
+
       {/* ===== HERO SECTION ===== */}
       <section class="hero" data-aos="1">
         <div class="hero-glow"></div>
+        <div class="hero-glow-2"></div>
 
         {/* Compact time widget — top-right corner */}
         <div class="hero-time" id="heroTime">

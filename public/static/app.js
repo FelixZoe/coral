@@ -457,7 +457,7 @@
   }
 
   // ==============================================
-  //  TRENDING LANGUAGE FILTER — Local switching with AJAX
+  //  TRENDING LANGUAGE FILTER — Local switching with horizontal slide
   // ==============================================
   function initTrendingLangFilter() {
     const filtersWrap = document.getElementById('trendingFilters');
@@ -468,6 +468,8 @@
     const tabsWrap = document.getElementById('trendingTabs');
     if (!contentWrap || !tabsWrap) return;
 
+    // Build index map for direction detection
+    const langList = Array.from(filterBtns).map(b => b.getAttribute('data-lang'));
     let isFetching = false;
 
     filterBtns.forEach(btn => {
@@ -479,6 +481,11 @@
         const newLang = btn.getAttribute('data-lang');
         const curLang = filtersWrap.getAttribute('data-current-lang');
         if (newLang === curLang) return;
+
+        // Determine slide direction from index
+        const fromIdx = langList.indexOf(curLang);
+        const toIdx = langList.indexOf(newLang);
+        const dir = toIdx > fromIdx ? 'left' : 'right';
 
         // Update active state
         filterBtns.forEach(b => b.classList.remove('active'));
@@ -493,29 +500,35 @@
         else url.searchParams.delete('lang_filter');
         history.replaceState({ path: url.pathname + url.search }, '', url.toString());
 
-        // Fetch new content via AJAX
-        isFetching = true;
-        contentWrap.style.opacity = '0.5';
-        contentWrap.style.transition = 'opacity 0.2s ease';
+        // Start: capture current height to prevent layout jump
+        const curHeight = contentWrap.offsetHeight;
+        contentWrap.style.minHeight = curHeight + 'px';
 
-        try {
+        // Slide out current content
+        isFetching = true;
+        contentWrap.classList.add('tab-fade-out-' + dir);
+
+        // Fetch new content in parallel
+        const fetchProm = (async () => {
           const fetchURL = `/trending?tab=${tab}${newLang ? '&lang_filter=' + encodeURIComponent(newLang) : ''}`;
           const resp = await fetch(fetchURL, { credentials: 'same-origin' });
           if (!resp.ok) throw new Error('fetch fail');
-          const html = await resp.text();
+          return resp.text();
+        })();
 
+        // Wait for slide-out animation
+        await new Promise(r => setTimeout(r, 340));
+
+        try {
+          const html = await fetchProm;
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           const newContent = doc.getElementById('trendingContent');
           const newTabs = doc.getElementById('trendingTabs');
 
+          contentWrap.classList.remove('tab-fade-out-' + dir);
+
           if (newContent) {
-            // Animate: slide out then in
-            contentWrap.style.opacity = '0';
-            contentWrap.style.transform = 'translateY(12px)';
-
-            await new Promise(r => setTimeout(r, 180));
-
             contentWrap.innerHTML = newContent.innerHTML;
 
             // Update tab badges
@@ -525,9 +538,14 @@
               newBadges.forEach((nb, i) => { if (curBadges[i]) curBadges[i].textContent = nb.textContent; });
             }
 
-            contentWrap.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            contentWrap.style.opacity = '1';
-            contentWrap.style.transform = 'translateY(0)';
+            // Slide in new content from opposite side
+            contentWrap.classList.add('tab-fade-in-' + dir);
+            const onIn = () => {
+              contentWrap.classList.remove('tab-fade-in-' + dir);
+              contentWrap.style.minHeight = '';
+            };
+            contentWrap.addEventListener('animationend', onIn, { once: true });
+            setTimeout(onIn, 360);
 
             // Update refresh btn
             const refreshBtn = document.querySelector('.trending-refresh-btn');
@@ -537,16 +555,14 @@
               refreshBtn.setAttribute('href', u.pathname + u.search);
             }
 
-            // Re-init trending tabs for new DOM
             initTrendingTabs();
           }
         } catch (e) {
-          // Fallback: navigate normally
+          contentWrap.classList.remove('tab-fade-out-' + dir);
+          contentWrap.style.minHeight = '';
           window.location.href = url.toString();
         } finally {
           isFetching = false;
-          contentWrap.style.opacity = '1';
-          contentWrap.style.transform = '';
         }
       });
     });
@@ -757,13 +773,64 @@
       return;
     }
 
-    // Language toggle (delegated)
+    // Language toggle (delegated) — smooth crossfade with blur overlay
     const langBtn = e.target.closest('.lang-toggle');
     if (langBtn) {
       e.preventDefault();
       const newLang = lang === 'zh' ? 'en' : 'zh';
       document.cookie = `portal_lang=${newLang}; path=/; max-age=${365 * 24 * 3600}; samesite=lax`;
-      window.location.reload();
+
+      // Create premium crossfade overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'lang-crossfade-overlay';
+      document.body.appendChild(overlay);
+      
+      // Trigger animation in next frame for CSS transition
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlay.classList.add('active');
+        });
+      });
+      
+      // Prefetch new page content during animation
+      const fetchProm = fetch(window.location.href, { credentials: 'same-origin' })
+        .then(r => r.ok ? r.text() : null)
+        .catch(() => null);
+      
+      // Wait for overlay to fully cover, then swap
+      setTimeout(async () => {
+        try {
+          const html = await fetchProm;
+          if (html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('pageContent');
+            const newTitle = doc.querySelector('title');
+            const container = document.getElementById('pageContent');
+            
+            if (newContent && container) {
+              container.innerHTML = newContent.innerHTML;
+              container.setAttribute('data-page', newContent.getAttribute('data-page') || '');
+              if (newTitle) document.title = newTitle.textContent;
+              
+              // Update body lang attribute
+              document.body.setAttribute('data-lang', newLang);
+              lang = newLang;
+              
+              // Re-init behaviors
+              initPageBehaviors();
+              attachSPALinks();
+              
+              // Fade out overlay
+              overlay.classList.remove('active');
+              setTimeout(() => { overlay.remove(); }, 400);
+              return;
+            }
+          }
+        } catch (_) {}
+        // Fallback to reload
+        window.location.reload();
+      }, 380);
       return;
     }
   });

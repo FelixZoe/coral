@@ -15,6 +15,105 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// ==================== 安全中间件 ====================
+
+// 1. Security Headers (CSP, XSS, anti-clickjacking, anti-sniffing)
+app.use('*', async (c, next) => {
+  await next()
+  // CSP: allow CDN assets, inline styles/scripts, self
+  c.res.headers.set('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+    "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
+    "img-src 'self' https: data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '))
+  c.res.headers.set('X-Content-Type-Options', 'nosniff')
+  c.res.headers.set('X-Frame-Options', 'DENY')
+  c.res.headers.set('X-XSS-Protection', '1; mode=block')
+  c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  c.res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+})
+
+// 2. Anti-crawler: block common bot User-Agents on non-API routes
+app.use('*', async (c, next) => {
+  const ua = (c.req.header('User-Agent') || '').toLowerCase()
+  const path = c.req.path
+  // Allow API, admin, and static asset paths
+  if (path.startsWith('/api/') || path.startsWith('/admin') || path.startsWith('/static/')) {
+    return next()
+  }
+  // Only block aggressive crawler/scraper UAs, not generic tools
+  const botPatterns = ['scrapy', 'python-requests', 'go-http-client', 'libwww-perl', 'httpclient/']
+  const isBot = botPatterns.some(p => ua.includes(p))
+  if (isBot) {
+    return c.text('Access Denied', 403)
+  }
+  return next()
+})
+
+// 3. Rate limiting for admin login (brute-force protection)
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
+
+function checkLoginRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = loginAttempts.get(ip)
+  if (!entry) return true
+  // Reset after 5 minutes
+  if (now - entry.lastAttempt > 5 * 60 * 1000) {
+    loginAttempts.delete(ip)
+    return true
+  }
+  return entry.count < 5 // max 5 attempts per 5 minutes
+}
+
+function recordLoginAttempt(ip: string) {
+  const now = Date.now()
+  const entry = loginAttempts.get(ip)
+  if (entry && now - entry.lastAttempt < 5 * 60 * 1000) {
+    entry.count++
+    entry.lastAttempt = now
+  } else {
+    loginAttempts.set(ip, { count: 1, lastAttempt: now })
+  }
+}
+
+// 4. Password hashing utilities (PBKDF2 via Web Crypto API)
+async function hashPassword(password: string, salt?: string): Promise<string> {
+  const s = salt || crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+  const enc = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: enc.encode(s), iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  )
+  const hashArr = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return `pbkdf2:${s}:${hashArr}`
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (!stored.startsWith('pbkdf2:')) {
+    // Legacy plaintext comparison (for migration)
+    return password === stored
+  }
+  const [, salt] = stored.split(':')
+  const rehash = await hashPassword(password, salt)
+  return rehash === stored
+}
+
+// 5. Input sanitization helper
+function sanitize(str: string): string {
+  return str.replace(/[<>"'&]/g, (ch) => {
+    const map: Record<string, string> = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' }
+    return map[ch] || ch
+  })
+}
+
 app.use(renderer)
 
 // ==================== 默认数据 ====================
@@ -623,21 +722,42 @@ app.get('/admin/login', (c) => {
 
 app.post('/admin/login', async (c) => {
   const lang = parseLang(c.req.header('Cookie'))
-  const body = await c.req.parseBody()
-  const password = body.password as string
-  let storedPw = await c.env.KV.get('admin_password')
-  if (!storedPw) {
-    await c.env.KV.put('admin_password', 'admin123')
-    storedPw = 'admin123'
+  const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown'
+  
+  // Rate limiting check
+  if (!checkLoginRateLimit(ip)) {
+    return c.render(adminPage('login', { error: lang === 'zh' ? '尝试次数过多，请5分钟后再试' : 'Too many attempts, try again in 5 minutes', lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
   }
-  if (password !== storedPw) {
+  
+  const body = await c.req.parseBody()
+  const password = sanitize((body.password as string) || '')
+  let storedPw = await c.env.KV.get('admin_password')
+  
+  if (!storedPw) {
+    // First time: hash the default password and store it
+    const hashed = await hashPassword('admin123')
+    await c.env.KV.put('admin_password', hashed)
+    storedPw = hashed
+  }
+  
+  // Migrate plaintext passwords to hashed
+  if (storedPw && !storedPw.startsWith('pbkdf2:')) {
+    const hashed = await hashPassword(storedPw)
+    await c.env.KV.put('admin_password', hashed)
+    storedPw = hashed
+  }
+  
+  const valid = await verifyPassword(password, storedPw)
+  if (!valid) {
+    recordLoginAttempt(ip)
     return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
   }
+  
   const sessionId = crypto.randomUUID()
   await c.env.KV.put('session:' + sessionId, '1', { expirationTtl: 86400 })
   return new Response(null, {
     status: 302,
-    headers: { 'Location': '/admin', 'Set-Cookie': `portal_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` }
+    headers: { 'Location': '/admin', 'Set-Cookie': `portal_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=86400` }
   })
 })
 
@@ -799,9 +919,19 @@ app.post('/admin/api/password', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const lang = parseLang(c.req.header('Cookie'))
   const { oldPassword, newPassword } = await c.req.json()
-  const stored = await c.env.KV.get('admin_password') || 'admin123'
-  if (oldPassword !== stored) return c.json({ error: lang === 'zh' ? '旧密码错误' : 'Incorrect old password' }, 400)
-  await c.env.KV.put('admin_password', newPassword)
+  
+  let stored = await c.env.KV.get('admin_password')
+  if (!stored) {
+    stored = await hashPassword('admin123')
+    await c.env.KV.put('admin_password', stored)
+  }
+  
+  const valid = await verifyPassword(sanitize(oldPassword || ''), stored)
+  if (!valid) return c.json({ error: lang === 'zh' ? '旧密码错误' : 'Incorrect old password' }, 400)
+  
+  // Hash the new password before storing
+  const hashedNew = await hashPassword(sanitize(newPassword || ''))
+  await c.env.KV.put('admin_password', hashedNew)
   return c.json({ ok: true })
 })
 
