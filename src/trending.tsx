@@ -183,16 +183,17 @@ export function trendingPage(
         </button>
       </div>
 
-      {/* Language Filter */}
-      <div class="trending-filters">
+      {/* Language Filter — client-side switching */}
+      <div class="trending-filters" id="trendingFilters" data-current-lang={selectedLang}>
         <span class="filter-label"><i class="fa-solid fa-code"></i> {t('trending', 'language', lang)}</span>
         <div class="filter-tags">
           {popularLangs.map(pl => (
-            <a href={`/trending?tab=${tab}${pl ? '&lang_filter=' + encodeURIComponent(pl) : ''}`}
+            <button type="button"
                class={`filter-tag ${selectedLang === pl ? 'active' : ''}`}
+               data-lang={pl}
                key={pl || 'all'}>
               {pl || t('trending', 'allLangs', lang)}
-            </a>
+            </button>
           ))}
         </div>
       </div>

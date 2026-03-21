@@ -399,6 +399,44 @@
 
     const lists = { hot: hotList, rising: risingList };
 
+    function animateListSwitch(curTab, toTab) {
+      const dir = toTab === 'rising' ? 'left' : 'right';
+      const hideList = lists[curTab];
+      const showList = lists[toTab];
+
+      hideList.classList.add('tab-fade-out-' + dir);
+      const onOutDone = () => {
+        hideList.classList.remove('tab-fade-out-' + dir);
+        hideList.style.display = 'none';
+        showList.style.display = '';
+        showList.classList.add('tab-fade-in-' + dir);
+        const onInDone = () => { showList.classList.remove('tab-fade-in-' + dir); };
+        showList.addEventListener('animationend', onInDone, { once: true });
+        setTimeout(onInDone, 320);
+      };
+      hideList.addEventListener('animationend', onOutDone, { once: true });
+      setTimeout(onOutDone, 320);
+    }
+
+    function updateURL() {
+      const tab = tabsWrap.getAttribute('data-current-tab');
+      const filtersWrap = document.getElementById('trendingFilters');
+      const langVal = filtersWrap ? filtersWrap.getAttribute('data-current-lang') : '';
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      if (langVal) url.searchParams.set('lang_filter', langVal);
+      else url.searchParams.delete('lang_filter');
+      history.replaceState({ path: url.pathname + url.search }, '', url.toString());
+
+      // Update refresh button href
+      const refreshBtn = document.querySelector('.trending-refresh-btn');
+      if (refreshBtn) {
+        const u = new URL(url.toString());
+        u.searchParams.set('refresh', '1');
+        refreshBtn.setAttribute('href', u.pathname + u.search);
+      }
+    }
+
     buttons.forEach(btn => {
       if (btn.dataset.trendTabBound) return;
       btn.dataset.trendTabBound = 'true';
@@ -408,62 +446,107 @@
         const curTab = tabsWrap.getAttribute('data-current-tab');
         if (toTab === curTab) return;
 
-        // Update active button
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         tabsWrap.setAttribute('data-current-tab', toTab);
 
-        // Determine direction
-        const dir = toTab === 'rising' ? 'left' : 'right';
+        animateListSwitch(curTab, toTab);
+        updateURL();
+      });
+    });
+  }
 
-        const hideList = lists[curTab];
-        const showList = lists[toTab];
+  // ==============================================
+  //  TRENDING LANGUAGE FILTER — Local switching with AJAX
+  // ==============================================
+  function initTrendingLangFilter() {
+    const filtersWrap = document.getElementById('trendingFilters');
+    if (!filtersWrap) return;
 
-        // Animate out current list
-        hideList.classList.add('tab-fade-out-' + dir);
+    const filterBtns = filtersWrap.querySelectorAll('.filter-tag[data-lang]');
+    const contentWrap = document.getElementById('trendingContent');
+    const tabsWrap = document.getElementById('trendingTabs');
+    if (!contentWrap || !tabsWrap) return;
 
-        const onOutDone = () => {
-          hideList.classList.remove('tab-fade-out-' + dir);
-          hideList.style.display = 'none';
+    let isFetching = false;
 
-          // Show new list with animation
-          showList.style.display = '';
-          showList.classList.add('tab-fade-in-' + dir);
+    filterBtns.forEach(btn => {
+      if (btn.dataset.langBound) return;
+      btn.dataset.langBound = 'true';
 
-          const onInDone = () => {
-            showList.classList.remove('tab-fade-in-' + dir);
-          };
-          showList.addEventListener('animationend', onInDone, { once: true });
-          setTimeout(onInDone, 320);
-        };
+      btn.addEventListener('click', async () => {
+        if (isFetching) return;
+        const newLang = btn.getAttribute('data-lang');
+        const curLang = filtersWrap.getAttribute('data-current-lang');
+        if (newLang === curLang) return;
 
-        hideList.addEventListener('animationend', onOutDone, { once: true });
-        setTimeout(onOutDone, 320);
+        // Update active state
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtersWrap.setAttribute('data-current-lang', newLang);
 
-        // Update URL without page reload
+        // Update URL
         const url = new URL(window.location.href);
-        url.searchParams.set('tab', toTab);
+        const tab = tabsWrap.getAttribute('data-current-tab') || 'hot';
+        url.searchParams.set('tab', tab);
+        if (newLang) url.searchParams.set('lang_filter', newLang);
+        else url.searchParams.delete('lang_filter');
         history.replaceState({ path: url.pathname + url.search }, '', url.toString());
 
-        // Update language filter links to reflect new tab
-        document.querySelectorAll('.filter-tag').forEach(a => {
-          const href = a.getAttribute('href');
-          if (href) {
-            const u = new URL(href, window.location.origin);
-            u.searchParams.set('tab', toTab);
-            a.setAttribute('href', u.pathname + u.search);
-          }
-        });
+        // Fetch new content via AJAX
+        isFetching = true;
+        contentWrap.style.opacity = '0.5';
+        contentWrap.style.transition = 'opacity 0.2s ease';
 
-        // Update refresh button
-        const refreshBtn = document.querySelector('.trending-refresh-btn');
-        if (refreshBtn) {
-          const href = refreshBtn.getAttribute('href');
-          if (href) {
-            const u = new URL(href, window.location.origin);
-            u.searchParams.set('tab', toTab);
-            refreshBtn.setAttribute('href', u.pathname + u.search);
+        try {
+          const fetchURL = `/trending?tab=${tab}${newLang ? '&lang_filter=' + encodeURIComponent(newLang) : ''}`;
+          const resp = await fetch(fetchURL, { credentials: 'same-origin' });
+          if (!resp.ok) throw new Error('fetch fail');
+          const html = await resp.text();
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newContent = doc.getElementById('trendingContent');
+          const newTabs = doc.getElementById('trendingTabs');
+
+          if (newContent) {
+            // Animate: slide out then in
+            contentWrap.style.opacity = '0';
+            contentWrap.style.transform = 'translateY(12px)';
+
+            await new Promise(r => setTimeout(r, 180));
+
+            contentWrap.innerHTML = newContent.innerHTML;
+
+            // Update tab badges
+            if (newTabs) {
+              const newBadges = newTabs.querySelectorAll('.tab-badge');
+              const curBadges = tabsWrap.querySelectorAll('.tab-badge');
+              newBadges.forEach((nb, i) => { if (curBadges[i]) curBadges[i].textContent = nb.textContent; });
+            }
+
+            contentWrap.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            contentWrap.style.opacity = '1';
+            contentWrap.style.transform = 'translateY(0)';
+
+            // Update refresh btn
+            const refreshBtn = document.querySelector('.trending-refresh-btn');
+            if (refreshBtn) {
+              const u = new URL(window.location.href);
+              u.searchParams.set('refresh', '1');
+              refreshBtn.setAttribute('href', u.pathname + u.search);
+            }
+
+            // Re-init trending tabs for new DOM
+            initTrendingTabs();
           }
+        } catch (e) {
+          // Fallback: navigate normally
+          window.location.href = url.toString();
+        } finally {
+          isFetching = false;
+          contentWrap.style.opacity = '1';
+          contentWrap.style.transform = '';
         }
       });
     });
@@ -496,6 +579,7 @@
     initDownloadButtons();
     initDownloadSearch();
     initTrendingTabs();
+    initTrendingLangFilter();
     initAOS();
   }
 
