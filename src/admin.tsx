@@ -29,6 +29,9 @@ function loginView({ error }: { error?: string; lang?: Lang }, lang: Lang) {
           </button>
         </form>
         <p class="adm-login-hint">{t('adminLogin', 'hint', lang)}</p>
+        <a href="/" class="adm-login-back">
+          <i class="fa-solid fa-arrow-left"></i> {lang === 'zh' ? '返回首页' : 'Back to Home'}
+        </a>
       </div>
     </div>
   )

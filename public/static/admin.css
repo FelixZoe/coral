@@ -54,6 +54,22 @@
   margin-top: 20px;
 }
 
+.adm-login-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.adm-login-back:hover {
+  color: var(--accent);
+}
+
 /* === Alert === */
 .adm-alert {
   padding: 10px 14px;
