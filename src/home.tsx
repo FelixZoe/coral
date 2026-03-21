@@ -48,26 +48,33 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
       </div>
 
       <div class="container">
-        <header class="header">
+        <header class="header" id="siteHeader">
           <div class="header-left">
-            <span class="logo-dot"></span>
-            <span class="logo-text">portal</span>
+            <a href="/" class="logo-link">
+              <span class="logo-dot"></span>
+              <span class="logo-text">portal</span>
+            </a>
           </div>
-          <nav class="header-nav">
-            <a href="#projects" class="nav-link">{t('nav', 'projects', lang)}</a>
-            <a href="#github" class="nav-link">{t('nav', 'github', lang)}</a>
-            <a href="#downloads" class="nav-link">{t('nav', 'downloads', lang)}</a>
+          <nav class="header-nav" id="headerNav">
+            <a href="#projects" class="nav-link"><i class="fa-solid fa-cube"></i><span>{t('nav', 'projects', lang)}</span></a>
+            <a href="#github" class="nav-link"><i class="fa-brands fa-github"></i><span>{t('nav', 'github', lang)}</span></a>
+            <a href="#downloads" class="nav-link"><i class="fa-solid fa-cloud-arrow-down"></i><span>{t('nav', 'downloads', lang)}</span></a>
+            <div class="nav-indicator" id="navIndicator"></div>
           </nav>
           <div class="header-actions">
-            <a href="/admin" class="admin-entry" title={lang === 'zh' ? '后台管理' : 'Admin Panel'}>
-              <i class="fa-solid fa-lock"></i>
+            <a href="/admin" class="header-icon-btn admin-entry" title={lang === 'zh' ? '后台管理' : 'Admin Panel'}>
+              <i class="fa-solid fa-gear"></i>
             </a>
-            <a href={`/api/set-lang?lang=${otherLang}`} class="lang-toggle" id="langToggle" title={lang === 'zh' ? 'Switch to English' : '切换到中文'}>
-              <i class="fa-solid fa-globe"></i>
-              <span>{langLabel}</span>
+            <a href={`/api/set-lang?lang=${otherLang}`} class="header-icon-btn lang-toggle" id="langToggle" title={lang === 'zh' ? 'Switch to English' : '切换到中文'}>
+              <span class="lang-label">{langLabel}</span>
             </a>
-            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+            <button class="header-icon-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">
               <i class="fa-solid fa-sun"></i>
+            </button>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
             </button>
           </div>
         </header>
