@@ -393,20 +393,43 @@
 
   // === Storage Settings ===
   const radioGroup = document.getElementById('storageModeGroup');
+  const localConfigEl = document.getElementById('localConfig');
+  const uploadZoneEl = document.getElementById('uploadZone');
+  const externalHintEl = document.getElementById('externalHint');
+  const localUploadHintEl = document.getElementById('localUploadHint');
+  const addLinkBtnEl = document.getElementById('addLinkFile');
+
+  function updateStorageModeUI(mode) {
+    // Show/hide upload zone (for KV and local modes)
+    if (uploadZoneEl) uploadZoneEl.style.display = (mode === 'kv' || mode === 'local') ? '' : 'none';
+    // Show/hide external hint
+    if (externalHintEl) externalHintEl.style.display = (mode === 'external') ? '' : 'none';
+    // Show/hide local upload hint
+    if (localUploadHintEl) localUploadHintEl.style.display = (mode === 'local') ? '' : 'none';
+    // Show/hide add link button
+    if (addLinkBtnEl) addLinkBtnEl.style.display = (mode === 'external') ? '' : 'none';
+    // Show/hide local config fields
+    if (localConfigEl) localConfigEl.style.display = (mode === 'local') ? '' : 'none';
+  }
+
   if (radioGroup) {
     radioGroup.querySelectorAll('input[name="storageMode"]').forEach(radio => {
       radio.addEventListener('change', () => {
         radioGroup.querySelectorAll('.adm-radio-card').forEach(c => c.classList.remove('active'));
         radio.closest('.adm-radio-card').classList.add('active');
+        updateStorageModeUI(radio.value);
       });
     });
   }
 
   document.getElementById('saveSettings')?.addEventListener('click', async () => {
     const mode = document.querySelector('input[name="storageMode"]:checked')?.value || 'kv';
+    const localServerUrl = document.getElementById('set-localServerUrl')?.value || '';
+    const localStoragePath = document.getElementById('set-localStoragePath')?.value || '/data/portal/files';
     try {
-      await api('/admin/api/settings', { ...settings, storageMode: mode });
-      settings.storageMode = mode;
+      const newSettings = { ...settings, storageMode: mode, localServerUrl, localStoragePath };
+      await api('/admin/api/settings', newSettings);
+      settings = newSettings;
       toast(i.settingsSaved);
       setTimeout(() => location.reload(), 1000);
     } catch (e) { toast(e.message, 'error'); }

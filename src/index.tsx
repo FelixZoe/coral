@@ -45,7 +45,9 @@ const DEFAULT_REPOS = [
 ]
 
 const DEFAULT_SETTINGS = {
-  storageMode: 'kv', // kv | external
+  storageMode: 'kv', // kv | local | external
+  localServerUrl: '',
+  localStoragePath: '/data/portal/files',
   externalUploadUrl: '',
   externalDownloadPrefix: '',
   maxFileSize: 25, // MB, KV 单值上限 25MB
@@ -100,10 +102,29 @@ app.get('/api/download/:key', async (c) => {
 
   const settings = await getData(c.env.KV, 'settings', DEFAULT_SETTINGS)
 
-  if (settings.storageMode === 'external' && fileMeta.externalUrl) {
+  // 外链模式
+  if (fileMeta.isExternal && fileMeta.externalUrl) {
     return c.redirect(fileMeta.externalUrl)
   }
 
+  // 本地存储模式：代理到本地文件服务器
+  if (fileMeta.storageType === 'local' && settings.localServerUrl) {
+    const serverUrl = settings.localServerUrl.replace(/\/$/, '')
+    const storagePath = (settings.localStoragePath || '/data/portal/files').replace(/\/$/, '')
+    const fileUrl = `${serverUrl}${storagePath}/${fileMeta.storedName || key}`
+    try {
+      const resp = await fetch(fileUrl)
+      if (!resp.ok) return c.json({ error: 'File not found on local server' }, 404)
+      const headers = new Headers()
+      headers.set('Content-Type', fileMeta.type || 'application/octet-stream')
+      headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileMeta.originalName || key)}"`)
+      return new Response(resp.body, { headers })
+    } catch (e) {
+      return c.json({ error: 'Local server unreachable' }, 502)
+    }
+  }
+
+  // KV 存储模式
   const b64 = await c.env.KV.get(`file:${key}`)
   if (!b64) return c.json({ error: 'File data not found' }, 404)
 
@@ -202,12 +223,48 @@ app.post('/admin/api/upload', async (c) => {
   if (!file) return c.json({ error: 'No file' }, 400)
 
   const settings = await getData(c.env.KV, 'settings', DEFAULT_SETTINGS)
+  const key = Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+
+  if (settings.storageMode === 'local' && settings.localServerUrl) {
+    // 本地存储模式：转发到本地文件服务器
+    const serverUrl = settings.localServerUrl.replace(/\/$/, '')
+    const storagePath = (settings.localStoragePath || '/data/portal/files').replace(/\/$/, '')
+    const uploadUrl = `${serverUrl}/upload`
+    try {
+      const proxyForm = new FormData()
+      proxyForm.append('file', file)
+      proxyForm.append('path', storagePath)
+      proxyForm.append('filename', key)
+      const resp = await fetch(uploadUrl, { method: 'POST', body: proxyForm })
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => 'Upload failed')
+        return c.json({ error: `Local server error: ${errText}` }, 502)
+      }
+    } catch (e) {
+      return c.json({ error: 'Local server unreachable' }, 502)
+    }
+
+    // 文件元数据仍存 KV
+    const files: any[] = await getData(c.env.KV, 'files', [])
+    files.push({
+      key,
+      displayName,
+      originalName: file.name,
+      storedName: key,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString(),
+      storageType: 'local',
+    })
+    await c.env.KV.put('files', JSON.stringify(files))
+    return c.json({ ok: true, key })
+  }
+
+  // KV 存储模式
   const maxBytes = (settings.maxFileSize || 25) * 1024 * 1024
   if (file.size > maxBytes) {
     return c.json({ error: `File too large. Max ${settings.maxFileSize}MB` }, 400)
   }
-
-  const key = Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
 
   const buf = await file.arrayBuffer()
   const bytes = new Uint8Array(buf)
@@ -224,6 +281,7 @@ app.post('/admin/api/upload', async (c) => {
     size: file.size,
     type: file.type,
     uploadedAt: new Date().toISOString(),
+    storageType: 'kv',
   })
   await c.env.KV.put('files', JSON.stringify(files))
   return c.json({ ok: true, key })

@@ -141,16 +141,30 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
             </button>
           </div>
 
-          <div class="adm-card adm-upload-zone" id="uploadZone" style={st.storageMode === 'kv' ? '' : 'display:none'}>
+          <div class="adm-card adm-upload-zone" id="uploadZone" style={st.storageMode === 'kv' || st.storageMode === 'local' ? '' : 'display:none'}>
             <div class="adm-upload-inner">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <p>{t('admin', 'dragDrop', lang)} <label for="fileInput" class="adm-upload-link">{t('admin', 'browse', lang)}</label></p>
               <input type="file" id="fileInput" multiple hidden />
-              <span class="adm-upload-hint">{t('admin', 'maxFileHint', lang)} {st.maxFileSize || 25}MB · {t('admin', 'storedIn', lang)}</span>
+              <span class="adm-upload-hint">
+                {st.storageMode === 'local'
+                  ? t('admin', 'storedInLocal', lang)
+                  : (<>{t('admin', 'maxFileHint', lang)} {st.maxFileSize || 25}MB · {t('admin', 'storedIn', lang)}</>)
+                }
+              </span>
             </div>
             <div class="adm-upload-progress" id="uploadProgress" style="display:none">
               <div class="adm-progress-bar"><div class="adm-progress-fill" id="progressFill"></div></div>
               <span id="progressText">{t('admin', 'uploading', lang)}</span>
+            </div>
+          </div>
+
+          <div class="adm-card" id="localUploadHint" style={st.storageMode === 'local' ? '' : 'display:none'}>
+            <div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:0.85rem">
+              <i class="fa-solid fa-server" style="font-size:1.5rem;margin-bottom:8px;display:block;color:var(--accent)"></i>
+              {t('admin', 'localUploadHint', lang)}
+              {st.localServerUrl && (<span> — <strong>{st.localServerUrl}</strong></span>)}
+              {st.localStoragePath && (<span> ({st.localStoragePath})</span>)}
             </div>
           </div>
 
@@ -171,7 +185,7 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
                   <strong>{f.displayName}</strong>
                   <span class="adm-item-sub">
                     {f.originalName} · {formatSize(f.size)}
-                    {f.isExternal ? ` · ${t('admin', 'external', lang)}` : ' · KV'}
+                    {f.isExternal ? ` · ${t('admin', 'external', lang)}` : f.storageType === 'local' ? ` · ${t('admin', 'localStorageInfo', lang)}` : ' · KV'}
                   </span>
                 </div>
                 <div class="adm-item-actions">
@@ -189,6 +203,39 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
             <h2><i class="fa-solid fa-gear"></i> {t('admin', 'settingsTitle', lang)}</h2>
           </div>
 
+          {/* Storage Status */}
+          <div class="adm-card adm-storage-status">
+            <h3 class="adm-card-title"><i class="fa-solid fa-chart-pie"></i> {t('admin', 'storageStatus', lang)}</h3>
+            <div class="adm-status-grid">
+              <div class="adm-status-item">
+                <span class="adm-status-label">{t('admin', 'currentMode', lang)}</span>
+                <span class="adm-status-value adm-status-badge" id="statusMode">
+                  {st.storageMode === 'kv' ? t('admin', 'kvStorage', lang) : st.storageMode === 'local' ? t('admin', 'localStorage', lang) : t('admin', 'externalLinks', lang)}
+                </span>
+              </div>
+              {st.storageMode === 'local' && st.localServerUrl && (
+                <div class="adm-status-item">
+                  <span class="adm-status-label">{t('admin', 'serverAddress', lang)}</span>
+                  <span class="adm-status-value adm-status-mono">{st.localServerUrl}</span>
+                </div>
+              )}
+              {st.storageMode === 'local' && st.localStoragePath && (
+                <div class="adm-status-item">
+                  <span class="adm-status-label">{t('admin', 'storagePath', lang)}</span>
+                  <span class="adm-status-value adm-status-mono">{st.localStoragePath}</span>
+                </div>
+              )}
+              <div class="adm-status-item">
+                <span class="adm-status-label">{t('admin', 'fileCount', lang)}</span>
+                <span class="adm-status-value">{files.length}</span>
+              </div>
+              <div class="adm-status-item">
+                <span class="adm-status-label">{t('admin', 'totalSize', lang)}</span>
+                <span class="adm-status-value">{formatSize(files.reduce((a: number, f: any) => a + (f.size || 0), 0))}</span>
+              </div>
+            </div>
+          </div>
+
           <div class="adm-card">
             <h3 class="adm-card-title"><i class="fa-solid fa-hard-drive"></i> {t('admin', 'storage', lang)}</h3>
             <p class="adm-card-desc">{t('admin', 'storageDesc', lang)}</p>
@@ -203,6 +250,16 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
                   </div>
                 </div>
               </label>
+              <label class={`adm-radio-card ${st.storageMode === 'local' ? 'active' : ''}`}>
+                <input type="radio" name="storageMode" value="local" checked={st.storageMode === 'local'} />
+                <div class="adm-radio-card-body">
+                  <div class="adm-radio-icon"><i class="fa-solid fa-server"></i></div>
+                  <div>
+                    <strong>{t('admin', 'localStorage', lang)}</strong>
+                    <span>{t('admin', 'localDesc', lang)}</span>
+                  </div>
+                </div>
+              </label>
               <label class={`adm-radio-card ${st.storageMode === 'external' ? 'active' : ''}`}>
                 <input type="radio" name="storageMode" value="external" checked={st.storageMode === 'external'} />
                 <div class="adm-radio-card-body">
@@ -214,6 +271,23 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
                 </div>
               </label>
             </div>
+
+            {/* Local storage config fields */}
+            <div class="adm-local-config" id="localConfig" style={st.storageMode === 'local' ? '' : 'display:none'}>
+              <div class="adm-form-grid" style="margin-top:16px">
+                <div class="adm-field adm-field-full">
+                  <label>{t('admin', 'localServerUrl', lang)}</label>
+                  <input id="set-localServerUrl" value={st.localServerUrl || ''} placeholder="http://192.168.1.100:8080" />
+                  <span class="adm-field-hint">{t('admin', 'localServerUrlHint', lang)}</span>
+                </div>
+                <div class="adm-field adm-field-full">
+                  <label>{t('admin', 'localStoragePath', lang)}</label>
+                  <input id="set-localStoragePath" value={st.localStoragePath || '/data/portal/files'} placeholder="/data/portal/files" />
+                  <span class="adm-field-hint">{t('admin', 'localStoragePathHint', lang)}</span>
+                </div>
+              </div>
+            </div>
+
             <button class="adm-btn adm-btn-primary" id="saveSettings" style="margin-top:16px">
               <i class="fa-solid fa-save"></i> {t('admin', 'saveStorage', lang)}
             </button>
