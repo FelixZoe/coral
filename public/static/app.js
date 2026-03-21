@@ -137,6 +137,23 @@
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
+
+      // New hero compact clock
+      const hh = document.querySelector('.hero-time-h');
+      const mm = document.querySelector('.hero-time-m');
+      const dd = document.getElementById('heroDate');
+      if (hh) hh.textContent = h;
+      if (mm) mm.textContent = m;
+      if (dd) {
+        if (lang === 'zh') {
+          const wd = ['日','一','二','三','四','五','六'];
+          dd.textContent = `${now.getMonth()+1}/${now.getDate()} 周${wd[now.getDay()]}`;
+        } else {
+          dd.textContent = now.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short' });
+        }
+      }
+
+      // Legacy support (old time-hour/time-min)
       const hourEl = document.querySelector('.time-hour');
       const minEl = document.querySelector('.time-min');
       const dateEl = document.getElementById('dateDisplay');
@@ -152,7 +169,7 @@
       }
     }
 
-    if (document.querySelector('.time-hour')) {
+    if (document.querySelector('.hero-time-h') || document.querySelector('.time-hour')) {
       tick();
       clockInterval = setInterval(tick, 1000);
     }
@@ -162,7 +179,7 @@
   //  CARD EFFECTS
   // ==============================================
   function initCardEffects() {
-    document.querySelectorAll('.card').forEach(card => {
+    document.querySelectorAll('.card, .nav-card').forEach(card => {
       card.addEventListener('mousemove', (e) => {
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -180,12 +197,12 @@
   //  STAT COUNT UP
   // ==============================================
   function initStatCountUp() {
-    const statsCard = document.querySelector('.card-stats');
-    if (!statsCard) return;
+    const statsRow = document.querySelector('.stats-row') || document.querySelector('.card-stats');
+    if (!statsRow) return;
     const obs = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.querySelectorAll('.stat-num').forEach(n => {
+          entry.target.querySelectorAll('.stat-pill-num, .stat-num').forEach(n => {
             const target = parseInt(n.textContent, 10);
             if (!isNaN(target) && !n.dataset.animated) {
               n.dataset.animated = 'true';
@@ -202,7 +219,7 @@
         }
       });
     }, { threshold: 0.3 });
-    obs.observe(statsCard);
+    obs.observe(statsRow);
   }
 
   // ==============================================
