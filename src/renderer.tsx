@@ -1,8 +1,9 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 
-export const renderer = jsxRenderer(({ children, title }) => {
+export const renderer = jsxRenderer(({ children, title, lang }) => {
+  const htmlLang = lang === 'en' ? 'en' : 'zh-CN'
   return (
-    <html lang="zh-CN">
+    <html lang={htmlLang}>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,7 +16,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
         <link href="/static/style.css" rel="stylesheet" />
         <link href="/static/admin.css" rel="stylesheet" />
       </head>
-      <body>
+      <body data-lang={lang || 'zh'}>
         {children}
         <script src="/static/app.js"></script>
       </body>

@@ -1,0 +1,168 @@
+/** i18n.ts — Translation data for Chinese/English */
+
+export type Lang = 'zh' | 'en'
+
+export const translations = {
+  // === Header / Nav ===
+  nav: {
+    projects: { zh: '项目', en: 'Projects' },
+    github: { zh: 'GitHub', en: 'GitHub' },
+    downloads: { zh: '下载', en: 'Downloads' },
+  },
+
+  // === Home Page ===
+  home: {
+    quickStats: { zh: '数据概览', en: 'Quick Stats' },
+    websites: { zh: '网站', en: 'Websites' },
+    repos: { zh: '仓库', en: 'Repos' },
+    stars: { zh: '星标', en: 'Stars' },
+    files: { zh: '文件', en: 'Files' },
+    webProjects: { zh: '网站项目', en: 'Web Projects' },
+    githubProjects: { zh: 'GitHub 项目', en: 'GitHub Projects' },
+    downloadsTitle: { zh: '文件下载', en: 'Downloads' },
+    download: { zh: '下载', en: 'Download' },
+    builtWith: { zh: '用', en: 'Built with' },
+    and: { zh: '和', en: '&' },
+    deployedOn: { zh: '部署于 Cloudflare Pages', en: 'Deployed on Cloudflare Pages' },
+  },
+
+  // === Admin Login ===
+  adminLogin: {
+    title: { zh: '后台管理', en: 'Portal Admin' },
+    subtitle: { zh: '输入密码以管理您的门户', en: 'Enter your password to manage your portal' },
+    password: { zh: '密码', en: 'Password' },
+    placeholder: { zh: '输入管理员密码', en: 'Enter admin password' },
+    signIn: { zh: '登 录', en: 'Sign In' },
+    hint: { zh: '默认密码: admin123', en: 'Default password: admin123' },
+    wrongPw: { zh: '密码错误', en: 'Incorrect password' },
+  },
+
+  // === Admin Dashboard ===
+  admin: {
+    sidebarTitle: { zh: '管理后台', en: 'Admin' },
+    profile: { zh: '个人信息', en: 'Profile' },
+    websitesTab: { zh: '网站', en: 'Websites' },
+    githubTab: { zh: 'GitHub', en: 'GitHub' },
+    filesTab: { zh: '文件', en: 'Files' },
+    settingsTab: { zh: '设置', en: 'Settings' },
+    viewSite: { zh: '查看站点', en: 'View Site' },
+    logout: { zh: '退出', en: 'Logout' },
+
+    // Profile section
+    personalInfo: { zh: '个人信息', en: 'Personal Info' },
+    save: { zh: '保存', en: 'Save' },
+    name: { zh: '名称', en: 'Name' },
+    tagline: { zh: '标语', en: 'Tagline' },
+    avatarUrl: { zh: '头像 URL', en: 'Avatar URL' },
+    bio: { zh: '简介', en: 'Bio' },
+    location: { zh: '位置', en: 'Location' },
+    email: { zh: '邮箱', en: 'Email' },
+    status: { zh: '状态', en: 'Status' },
+    currentlyReading: { zh: '在读', en: 'Currently Reading' },
+    quote: { zh: '座右铭', en: 'Quote' },
+    quoteAuthor: { zh: '作者', en: 'Quote Author' },
+    githubUrl: { zh: 'GitHub URL', en: 'GitHub URL' },
+    twitterUrl: { zh: 'Twitter URL', en: 'Twitter URL' },
+
+    // Websites section
+    webProjectsTitle: { zh: '网站项目', en: 'Web Projects' },
+    add: { zh: '添加', en: 'Add' },
+    edit: { zh: '编辑', en: 'Edit' },
+    delete: { zh: '删除', en: 'Delete' },
+
+    // Repos section
+    githubProjectsTitle: { zh: 'GitHub 项目', en: 'GitHub Projects' },
+
+    // Files section
+    fileManager: { zh: '文件管理', en: 'File Manager' },
+    addLink: { zh: '添加链接', en: 'Add Link' },
+    dragDrop: { zh: '拖放文件到此处或', en: 'Drag & drop files here or' },
+    browse: { zh: '浏览', en: 'browse' },
+    maxFileHint: { zh: '每个文件最大', en: 'Max' },
+    storedIn: { zh: '存储在 KV', en: 'Stored in KV' },
+    externalHint: { zh: '外部链接模式 — 点击', en: 'External link mode — click' },
+    externalHintEnd: { zh: '添加文件下载链接', en: 'to add a file download URL' },
+    uploading: { zh: '上传中...', en: 'Uploading...' },
+    external: { zh: '外部', en: 'External' },
+
+    // Settings section
+    settingsTitle: { zh: '设置', en: 'Settings' },
+    storage: { zh: '存储', en: 'Storage' },
+    storageDesc: { zh: '选择上传文件的存储方式', en: 'Choose how uploaded files are stored' },
+    kvStorage: { zh: 'KV 存储', en: 'KV Storage' },
+    kvDesc: { zh: '文件以 base64 格式存储在 Cloudflare KV 中。简单无需额外配置。单文件最大 25MB。', en: 'Files stored as base64 in Cloudflare KV. Simple, no extra config. Max 25MB/file.' },
+    externalLinks: { zh: '外部链接', en: 'External Links' },
+    externalDesc: { zh: '添加任何外部服务的下载链接 (Google Drive, S3 等)。无大小限制。', en: 'Add download URLs from any external service (Google Drive, S3, etc). No size limit.' },
+    saveStorage: { zh: '保存存储设置', en: 'Save Storage Settings' },
+    changePassword: { zh: '修改密码', en: 'Change Password' },
+    currentPw: { zh: '当前密码', en: 'Current Password' },
+    newPw: { zh: '新密码', en: 'New Password' },
+    updatePw: { zh: '更新密码', en: 'Update Password' },
+
+    // Modal
+    cancel: { zh: '取消', en: 'Cancel' },
+
+    // Website form
+    title: { zh: '标题', en: 'Title' },
+    url: { zh: 'URL', en: 'URL' },
+    description: { zh: '描述', en: 'Description' },
+    tags: { zh: '标签(逗号分隔)', en: 'Tags (comma sep.)' },
+    color: { zh: '颜色', en: 'Color' },
+    icon: { zh: '图标', en: 'Icon' },
+
+    // Repo form
+    repoName: { zh: '名称', en: 'Name' },
+    language: { zh: '语言', en: 'Language' },
+
+    // Link form
+    displayName: { zh: '显示名称', en: 'Display Name' },
+    downloadUrl: { zh: '下载链接', en: 'Download URL' },
+    fileName: { zh: '文件名', en: 'File Name' },
+    fileSize: { zh: '文件大小(字节)', en: 'File Size (bytes)' },
+    mimeType: { zh: 'MIME 类型', en: 'MIME Type' },
+  },
+
+  // === Toast messages ===
+  toast: {
+    profileSaved: { zh: '个人信息已保存!', en: 'Profile saved!' },
+    websitesSaved: { zh: '网站已保存!', en: 'Websites saved!' },
+    reposSaved: { zh: '仓库已保存!', en: 'Repos saved!' },
+    uploaded: { zh: '上传成功!', en: 'uploaded!' },
+    uploadFailed: { zh: '上传失败', en: 'Upload failed' },
+    linkAdded: { zh: '链接已添加!', en: 'Link added!' },
+    fileDeleted: { zh: '文件已删除!', en: 'File deleted!' },
+    settingsSaved: { zh: '设置已保存! 刷新中...', en: 'Settings saved! Refreshing...' },
+    pwUpdated: { zh: '密码已更新!', en: 'Password updated!' },
+    fillBoth: { zh: '请填写两个字段', en: 'Please fill both fields' },
+    deleteWebsite: { zh: '确定删除此网站?', en: 'Delete this website?' },
+    deleteRepo: { zh: '确定删除此仓库?', en: 'Delete this repo?' },
+    deleteFile: { zh: '确定删除此文件?', en: 'Delete this file?' },
+    preparing: { zh: '准备中...', en: 'Preparing...' },
+    ready: { zh: '完成!', en: 'Ready!' },
+  },
+
+  // Misc
+  misc: {
+    addWebsite: { zh: '添加网站', en: 'Add Website' },
+    editWebsite: { zh: '编辑网站', en: 'Edit Website' },
+    addRepo: { zh: '添加仓库', en: 'Add Repo' },
+    editRepo: { zh: '编辑仓库', en: 'Edit Repo' },
+    addExtLink: { zh: '添加外部链接', en: 'Add External Link' },
+  },
+}
+
+/** Helper: get translation by lang */
+export function t(section: string, key: string, lang: Lang): string {
+  const sec = (translations as any)[section]
+  if (!sec) return key
+  const item = sec[key]
+  if (!item) return key
+  return item[lang] || item['en'] || key
+}
+
+/** Parse lang from cookie string */
+export function parseLang(cookieStr: string | undefined): Lang {
+  if (!cookieStr) return 'zh'
+  const match = cookieStr.match(/portal_lang=(zh|en)/)
+  return (match ? match[1] : 'zh') as Lang
+}

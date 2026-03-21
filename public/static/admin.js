@@ -1,13 +1,53 @@
 // ========================================
-// ADMIN PANEL — Frontend Logic
+// ADMIN PANEL — Frontend Logic (with i18n)
 // ========================================
 (() => {
   'use strict';
 
-  const D = window.__DATA__ || { websites: [], repos: [], files: [], settings: {} };
+  const D = window.__DATA__ || { websites: [], repos: [], files: [], settings: {}, lang: 'zh' };
   let websites = [...D.websites];
   let repos = [...D.repos];
   let settings = { ...D.settings };
+  const lang = D.lang || 'zh';
+
+  // === i18n strings ===
+  const i = {
+    profileSaved: lang === 'zh' ? '个人信息已保存!' : 'Profile saved!',
+    websitesSaved: lang === 'zh' ? '网站已保存!' : 'Websites saved!',
+    reposSaved: lang === 'zh' ? '仓库已保存!' : 'Repos saved!',
+    uploaded: lang === 'zh' ? '上传成功!' : 'uploaded!',
+    uploadFailed: lang === 'zh' ? '上传失败' : 'Upload failed',
+    linkAdded: lang === 'zh' ? '链接已添加!' : 'Link added!',
+    fileDeleted: lang === 'zh' ? '文件已删除!' : 'File deleted!',
+    settingsSaved: lang === 'zh' ? '设置已保存! 刷新中...' : 'Settings saved! Refreshing...',
+    pwUpdated: lang === 'zh' ? '密码已更新!' : 'Password updated!',
+    fillBoth: lang === 'zh' ? '请填写两个字段' : 'Please fill both fields',
+    deleteWebsite: lang === 'zh' ? '确定删除此网站?' : 'Delete this website?',
+    deleteRepo: lang === 'zh' ? '确定删除此仓库?' : 'Delete this repo?',
+    deleteFile: lang === 'zh' ? '确定删除此文件?' : 'Delete this file?',
+    addWebsite: lang === 'zh' ? '添加网站' : 'Add Website',
+    editWebsite: lang === 'zh' ? '编辑网站' : 'Edit Website',
+    addRepo: lang === 'zh' ? '添加仓库' : 'Add Repo',
+    editRepo: lang === 'zh' ? '编辑仓库' : 'Edit Repo',
+    addExtLink: lang === 'zh' ? '添加外部链接' : 'Add External Link',
+    uploading: lang === 'zh' ? '上传中' : 'Uploading',
+    // Form labels
+    lblTitle: lang === 'zh' ? '标题' : 'Title',
+    lblUrl: lang === 'zh' ? 'URL' : 'URL',
+    lblDesc: lang === 'zh' ? '描述' : 'Description',
+    lblTags: lang === 'zh' ? '标签(逗号分隔)' : 'Tags (comma sep.)',
+    lblColor: lang === 'zh' ? '颜色' : 'Color',
+    lblIcon: lang === 'zh' ? '图标' : 'Icon',
+    lblName: lang === 'zh' ? '名称' : 'Name',
+    lblLang: lang === 'zh' ? '语言' : 'Language',
+    lblStars: lang === 'zh' ? '星标' : 'Stars',
+    lblForks: lang === 'zh' ? '分支' : 'Forks',
+    lblDisplayName: lang === 'zh' ? '显示名称' : 'Display Name',
+    lblDownloadUrl: lang === 'zh' ? '下载链接' : 'Download URL',
+    lblFileName: lang === 'zh' ? '文件名' : 'File Name',
+    lblFileSize: lang === 'zh' ? '文件大小(字节)' : 'File Size (bytes)',
+    lblMimeType: lang === 'zh' ? 'MIME 类型' : 'MIME Type',
+  };
 
   // === Helpers ===
   function toast(msg, type = 'success') {
@@ -94,7 +134,7 @@
     };
     try {
       await api('/admin/api/profile', data);
-      toast('Profile saved!');
+      toast(i.profileSaved);
     } catch (e) { toast(e.message, 'error'); }
   });
 
@@ -107,14 +147,14 @@
   ];
 
   function websiteFormHTML(w = {}) {
-    const iconOpts = ICON_OPTIONS.map(i => `<option value="${i}" ${i === (w.icon || 'fa-solid fa-globe') ? 'selected' : ''}>${i.split(' ').pop()}</option>`).join('');
+    const iconOpts = ICON_OPTIONS.map(ic => `<option value="${ic}" ${ic === (w.icon || 'fa-solid fa-globe') ? 'selected' : ''}>${ic.split(' ').pop()}</option>`).join('');
     return `<div class="adm-form-grid">
-      <div class="adm-field"><label>Title</label><input id="mf-title" value="${esc(w.title || '')}" /></div>
-      <div class="adm-field"><label>URL</label><input id="mf-url" value="${esc(w.url || '')}" /></div>
-      <div class="adm-field adm-field-full"><label>Description</label><textarea id="mf-desc" rows="2">${esc(w.description || '')}</textarea></div>
-      <div class="adm-field"><label>Tags (comma sep.)</label><input id="mf-tags" value="${esc(w.tags || '')}" /></div>
-      <div class="adm-field"><label>Color</label><input id="mf-color" type="color" value="${w.color || '#E8A838'}" /></div>
-      <div class="adm-field"><label>Icon</label><select id="mf-icon">${iconOpts}</select></div>
+      <div class="adm-field"><label>${i.lblTitle}</label><input id="mf-title" value="${esc(w.title || '')}" /></div>
+      <div class="adm-field"><label>${i.lblUrl}</label><input id="mf-url" value="${esc(w.url || '')}" /></div>
+      <div class="adm-field adm-field-full"><label>${i.lblDesc}</label><textarea id="mf-desc" rows="2">${esc(w.description || '')}</textarea></div>
+      <div class="adm-field"><label>${i.lblTags}</label><input id="mf-tags" value="${esc(w.tags || '')}" /></div>
+      <div class="adm-field"><label>${i.lblColor}</label><input id="mf-color" type="color" value="${w.color || '#E8A838'}" /></div>
+      <div class="adm-field"><label>${i.lblIcon}</label><select id="mf-icon">${iconOpts}</select></div>
     </div>`;
   }
 
@@ -132,7 +172,7 @@
   async function saveWebsites() {
     try {
       await api('/admin/api/websites', websites);
-      toast('Websites saved!');
+      toast(i.websitesSaved);
       renderWebsites();
       closeModal();
     } catch (e) { toast(e.message, 'error'); }
@@ -145,8 +185,8 @@
         <div class="adm-item-icon" style="color:${w.color || '#E8A838'}"><i class="${w.icon || 'fa-solid fa-globe'}"></i></div>
         <div class="adm-item-body"><strong>${esc(w.title)}</strong><span class="adm-item-sub">${esc(w.description)}</span></div>
         <div class="adm-item-actions">
-          <button class="adm-btn-icon edit-website" title="Edit"><i class="fa-solid fa-pen"></i></button>
-          <button class="adm-btn-icon adm-btn-icon-danger delete-website" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          <button class="adm-btn-icon edit-website" title="${i.editWebsite}"><i class="fa-solid fa-pen"></i></button>
+          <button class="adm-btn-icon adm-btn-icon-danger delete-website" title="${lang === 'zh' ? '删除' : 'Delete'}"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>`).join('');
     bindWebsiteEvents();
@@ -158,7 +198,7 @@
         const id = btn.closest('.adm-item').dataset.id;
         const w = websites.find(x => x.id === id);
         if (!w) return;
-        openModal('Edit Website', websiteFormHTML(w), () => {
+        openModal(i.editWebsite, websiteFormHTML(w), () => {
           Object.assign(w, getWebsiteFromModal());
           saveWebsites();
         });
@@ -167,7 +207,7 @@
     document.querySelectorAll('.delete-website').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.closest('.adm-item').dataset.id;
-        if (!confirm('Delete this website?')) return;
+        if (!confirm(i.deleteWebsite)) return;
         websites = websites.filter(x => x.id !== id);
         saveWebsites();
       });
@@ -175,7 +215,7 @@
   }
 
   document.getElementById('addWebsite').addEventListener('click', () => {
-    openModal('Add Website', websiteFormHTML(), () => {
+    openModal(i.addWebsite, websiteFormHTML(), () => {
       websites.push({ id: uid(), ...getWebsiteFromModal() });
       saveWebsites();
     });
@@ -185,12 +225,12 @@
   // === Repos CRUD ===
   function repoFormHTML(r = {}) {
     return `<div class="adm-form-grid">
-      <div class="adm-field"><label>Name</label><input id="mr-name" value="${esc(r.name || '')}" /></div>
-      <div class="adm-field"><label>URL</label><input id="mr-url" value="${esc(r.url || '')}" /></div>
-      <div class="adm-field adm-field-full"><label>Description</label><textarea id="mr-desc" rows="2">${esc(r.description || '')}</textarea></div>
-      <div class="adm-field"><label>Language</label><input id="mr-lang" value="${esc(r.language || '')}" /></div>
-      <div class="adm-field"><label>Stars</label><input id="mr-stars" type="number" value="${r.stars || 0}" /></div>
-      <div class="adm-field"><label>Forks</label><input id="mr-forks" type="number" value="${r.forks || 0}" /></div>
+      <div class="adm-field"><label>${i.lblName}</label><input id="mr-name" value="${esc(r.name || '')}" /></div>
+      <div class="adm-field"><label>${i.lblUrl}</label><input id="mr-url" value="${esc(r.url || '')}" /></div>
+      <div class="adm-field adm-field-full"><label>${i.lblDesc}</label><textarea id="mr-desc" rows="2">${esc(r.description || '')}</textarea></div>
+      <div class="adm-field"><label>${i.lblLang}</label><input id="mr-lang" value="${esc(r.language || '')}" /></div>
+      <div class="adm-field"><label>${i.lblStars}</label><input id="mr-stars" type="number" value="${r.stars || 0}" /></div>
+      <div class="adm-field"><label>${i.lblForks}</label><input id="mr-forks" type="number" value="${r.forks || 0}" /></div>
     </div>`;
   }
 
@@ -208,7 +248,7 @@
   async function saveRepos() {
     try {
       await api('/admin/api/repos', repos);
-      toast('Repos saved!');
+      toast(i.reposSaved);
       renderRepos();
       closeModal();
     } catch (e) { toast(e.message, 'error'); }
@@ -221,8 +261,8 @@
         <div class="adm-item-icon"><i class="fa-solid fa-book-bookmark"></i></div>
         <div class="adm-item-body"><strong>${esc(r.name)}</strong><span class="adm-item-sub">${esc(r.description)}</span></div>
         <div class="adm-item-actions">
-          <button class="adm-btn-icon edit-repo" title="Edit"><i class="fa-solid fa-pen"></i></button>
-          <button class="adm-btn-icon adm-btn-icon-danger delete-repo" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          <button class="adm-btn-icon edit-repo" title="${i.editRepo}"><i class="fa-solid fa-pen"></i></button>
+          <button class="adm-btn-icon adm-btn-icon-danger delete-repo" title="${lang === 'zh' ? '删除' : 'Delete'}"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>`).join('');
     bindRepoEvents();
@@ -234,7 +274,7 @@
         const id = btn.closest('.adm-item').dataset.id;
         const r = repos.find(x => x.id === id);
         if (!r) return;
-        openModal('Edit Repo', repoFormHTML(r), () => {
+        openModal(i.editRepo, repoFormHTML(r), () => {
           Object.assign(r, getRepoFromModal());
           saveRepos();
         });
@@ -243,7 +283,7 @@
     document.querySelectorAll('.delete-repo').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.closest('.adm-item').dataset.id;
-        if (!confirm('Delete this repo?')) return;
+        if (!confirm(i.deleteRepo)) return;
         repos = repos.filter(x => x.id !== id);
         saveRepos();
       });
@@ -251,7 +291,7 @@
   }
 
   document.getElementById('addRepo').addEventListener('click', () => {
-    openModal('Add Repo', repoFormHTML(), () => {
+    openModal(i.addRepo, repoFormHTML(), () => {
       repos.push({ id: uid(), ...getRepoFromModal() });
       saveRepos();
     });
@@ -285,7 +325,7 @@
     for (const file of fileList) {
       uploadProgress.style.display = 'block';
       progressFill.style.width = '0%';
-      progressText.textContent = `Uploading ${file.name}...`;
+      progressText.textContent = `${i.uploading} ${file.name}...`;
 
       const formData = new FormData();
       formData.append('file', file);
@@ -296,10 +336,10 @@
         const iv = setInterval(() => { p = Math.min(p + Math.random() * 15, 85); progressFill.style.width = p + '%'; }, 300);
         const res = await fetch('/admin/api/upload', { method: 'POST', body: formData });
         clearInterval(iv);
-        if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Upload failed'); }
+        if (!res.ok) { const e = await res.json(); throw new Error(e.error || i.uploadFailed); }
         progressFill.style.width = '100%';
-        progressText.textContent = `${file.name} uploaded!`;
-        toast(`${file.name} uploaded!`);
+        progressText.textContent = `${file.name} ${i.uploaded}`;
+        toast(`${file.name} ${i.uploaded}`);
         setTimeout(() => { uploadProgress.style.display = 'none'; }, 1500);
         setTimeout(() => location.reload(), 1800);
       } catch (e) {
@@ -315,13 +355,13 @@
   if (addLinkBtn) {
     addLinkBtn.addEventListener('click', () => {
       const html = `<div class="adm-form-grid">
-        <div class="adm-field adm-field-full"><label>Display Name</label><input id="lf-name" placeholder="My Resume 2025" /></div>
-        <div class="adm-field adm-field-full"><label>Download URL</label><input id="lf-url" placeholder="https://drive.google.com/..." /></div>
-        <div class="adm-field"><label>File Name</label><input id="lf-filename" placeholder="resume.pdf" /></div>
-        <div class="adm-field"><label>File Size (bytes)</label><input id="lf-size" type="number" placeholder="0" /></div>
-        <div class="adm-field adm-field-full"><label>MIME Type</label><input id="lf-type" value="application/octet-stream" /></div>
+        <div class="adm-field adm-field-full"><label>${i.lblDisplayName}</label><input id="lf-name" placeholder="${lang === 'zh' ? '我的简历 2025' : 'My Resume 2025'}" /></div>
+        <div class="adm-field adm-field-full"><label>${i.lblDownloadUrl}</label><input id="lf-url" placeholder="https://drive.google.com/..." /></div>
+        <div class="adm-field"><label>${i.lblFileName}</label><input id="lf-filename" placeholder="resume.pdf" /></div>
+        <div class="adm-field"><label>${i.lblFileSize}</label><input id="lf-size" type="number" placeholder="0" /></div>
+        <div class="adm-field adm-field-full"><label>${i.lblMimeType}</label><input id="lf-type" value="application/octet-stream" /></div>
       </div>`;
-      openModal('Add External Link', html, async () => {
+      openModal(i.addExtLink, html, async () => {
         try {
           await api('/admin/api/add-link', {
             displayName: document.getElementById('lf-name').value,
@@ -330,7 +370,7 @@
             size: parseInt(document.getElementById('lf-size').value) || 0,
             type: document.getElementById('lf-type').value,
           });
-          toast('Link added!');
+          toast(i.linkAdded);
           closeModal();
           setTimeout(() => location.reload(), 800);
         } catch (e) { toast(e.message, 'error'); }
@@ -342,10 +382,10 @@
   document.querySelectorAll('.delete-file').forEach(btn => {
     btn.addEventListener('click', async () => {
       const key = btn.closest('.adm-item').dataset.key;
-      if (!confirm('Delete this file?')) return;
+      if (!confirm(i.deleteFile)) return;
       try {
         await api('/admin/api/delete-file', { key });
-        toast('File deleted!');
+        toast(i.fileDeleted);
         btn.closest('.adm-item').remove();
       } catch (e) { toast(e.message, 'error'); }
     });
@@ -367,7 +407,7 @@
     try {
       await api('/admin/api/settings', { ...settings, storageMode: mode });
       settings.storageMode = mode;
-      toast('Settings saved! Refreshing...');
+      toast(i.settingsSaved);
       setTimeout(() => location.reload(), 1000);
     } catch (e) { toast(e.message, 'error'); }
   });
@@ -376,10 +416,10 @@
   document.getElementById('changePw')?.addEventListener('click', async () => {
     const oldPw = document.getElementById('set-oldpw').value;
     const newPw = document.getElementById('set-newpw').value;
-    if (!oldPw || !newPw) return toast('Please fill both fields', 'error');
+    if (!oldPw || !newPw) return toast(i.fillBoth, 'error');
     try {
       await api('/admin/api/password', { oldPassword: oldPw, newPassword: newPw });
-      toast('Password updated!');
+      toast(i.pwUpdated);
       document.getElementById('set-oldpw').value = '';
       document.getElementById('set-newpw').value = '';
     } catch (e) { toast(e.message, 'error'); }

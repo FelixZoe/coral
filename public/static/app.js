@@ -1,9 +1,12 @@
 // ========================================
-// PORTAL — Frontend Interactions
+// PORTAL — Frontend Interactions (with i18n)
 // ========================================
 
 (() => {
   'use strict';
+
+  // === Get current language from body data attribute ===
+  const lang = document.body.getAttribute('data-lang') || 'zh';
 
   // === Theme Toggle ===
   const themeToggle = document.getElementById('themeToggle');
@@ -29,7 +32,18 @@
     setTheme(current === 'dark' ? 'light' : 'dark');
   });
 
-  // === Live Clock ===
+  // === Language Toggle — intercept click and use JS to set cookie + reload ===
+  const langToggle = document.getElementById('langToggle');
+  if (langToggle) {
+    langToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const newLang = lang === 'zh' ? 'en' : 'zh';
+      document.cookie = `portal_lang=${newLang}; path=/; max-age=${365 * 24 * 3600}; samesite=lax`;
+      window.location.reload();
+    });
+  }
+
+  // === Live Clock (locale-aware) ===
   function updateTime() {
     const now = new Date();
     const h = String(now.getHours()).padStart(2, '0');
@@ -43,8 +57,13 @@
     if (minEl) minEl.textContent = m;
 
     if (dateEl) {
-      const options = { weekday: 'long', month: 'long', day: 'numeric' };
-      dateEl.textContent = now.toLocaleDateString('en-US', options);
+      if (lang === 'zh') {
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
+      } else {
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        dateEl.textContent = now.toLocaleDateString('en-US', options);
+      }
     }
   }
 
@@ -116,20 +135,22 @@
   if (statsCard) observer.observe(statsCard);
 
   // === Download button click feedback ===
+  const preparingText = lang === 'zh' ? '准备中...' : 'Preparing...';
+  const readyText = lang === 'zh' ? '完成!' : 'Ready!';
+
   document.querySelectorAll('.download-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      // show a brief "downloading" state
       const icon = btn.querySelector('i');
       const text = btn.querySelector('span');
       if (icon && text) {
         const origIcon = icon.className;
         const origText = text.textContent;
         icon.className = 'fa-solid fa-spinner fa-spin';
-        text.textContent = 'Preparing...';
+        text.textContent = preparingText;
 
         setTimeout(() => {
           icon.className = 'fa-solid fa-check';
-          text.textContent = 'Ready!';
+          text.textContent = readyText;
           setTimeout(() => {
             icon.className = origIcon;
             text.textContent = origText;

@@ -1,4 +1,6 @@
-/** home.tsx — 前台首页 JSX 渲染 */
+/** home.tsx — 前台首页 JSX 渲染 (with i18n) */
+import type { Lang } from './i18n'
+import { t } from './i18n'
 
 const langColors: Record<string, string> = {
   TypeScript: '#3178C6', JavaScript: '#F7DF1E', CSS: '#563D7C',
@@ -31,8 +33,10 @@ const colorForType = (type: string) => {
   return '#6B7280'
 }
 
-export function homePage(profile: any, websites: any[], repos: any[], files: any[]) {
+export function homePage(profile: any, websites: any[], repos: any[], files: any[], lang: Lang = 'zh') {
   const totalStars = repos.reduce((a: number, r: any) => a + (r.stars || 0), 0)
+  const otherLang = lang === 'zh' ? 'en' : 'zh'
+  const langLabel = lang === 'zh' ? 'EN' : '中'
 
   return (
     <div class="portal">
@@ -50,13 +54,19 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
             <span class="logo-text">portal</span>
           </div>
           <nav class="header-nav">
-            <a href="#projects" class="nav-link">Projects</a>
-            <a href="#github" class="nav-link">GitHub</a>
-            <a href="#downloads" class="nav-link">Downloads</a>
+            <a href="#projects" class="nav-link">{t('nav', 'projects', lang)}</a>
+            <a href="#github" class="nav-link">{t('nav', 'github', lang)}</a>
+            <a href="#downloads" class="nav-link">{t('nav', 'downloads', lang)}</a>
           </nav>
-          <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-            <i class="fa-solid fa-sun"></i>
-          </button>
+          <div class="header-actions">
+            <a href={`/api/set-lang?lang=${otherLang}`} class="lang-toggle" id="langToggle" title={lang === 'zh' ? 'Switch to English' : '切换到中文'}>
+              <i class="fa-solid fa-globe"></i>
+              <span>{langLabel}</span>
+            </a>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+              <i class="fa-solid fa-sun"></i>
+            </button>
+          </div>
         </header>
 
         <main class="bento-grid">
@@ -110,19 +120,19 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
           {/* Stats */}
           <div class="card card-stats" data-aos="3">
             <div class="card-inner">
-              <h3 class="card-label">Quick Stats</h3>
+              <h3 class="card-label">{t('home', 'quickStats', lang)}</h3>
               <div class="stats-grid">
-                <div class="stat-item"><span class="stat-num">{websites.length}</span><span class="stat-label">Websites</span></div>
-                <div class="stat-item"><span class="stat-num">{repos.length}</span><span class="stat-label">Repos</span></div>
-                <div class="stat-item"><span class="stat-num">{totalStars}</span><span class="stat-label">Stars</span></div>
-                <div class="stat-item"><span class="stat-num">{files.length}</span><span class="stat-label">Files</span></div>
+                <div class="stat-item"><span class="stat-num">{websites.length}</span><span class="stat-label">{t('home', 'websites', lang)}</span></div>
+                <div class="stat-item"><span class="stat-num">{repos.length}</span><span class="stat-label">{t('home', 'repos', lang)}</span></div>
+                <div class="stat-item"><span class="stat-num">{totalStars}</span><span class="stat-label">{t('home', 'stars', lang)}</span></div>
+                <div class="stat-item"><span class="stat-num">{files.length}</span><span class="stat-label">{t('home', 'files', lang)}</span></div>
               </div>
             </div>
           </div>
 
           {/* Web Projects */}
           {websites.length > 0 && (
-            <div class="section-title" id="projects" data-aos="4"><h2><i class="fa-solid fa-globe"></i> Web Projects</h2></div>
+            <div class="section-title" id="projects" data-aos="4"><h2><i class="fa-solid fa-globe"></i> {t('home', 'webProjects', lang)}</h2></div>
           )}
           {websites.map((site: any, i: number) => (
             <a href={site.url} target="_blank" rel="noopener" class="card card-website" data-aos={5 + i} key={site.id}>
@@ -140,7 +150,7 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
 
           {/* GitHub */}
           {repos.length > 0 && (
-            <div class="section-title" id="github" data-aos="8"><h2><i class="fa-brands fa-github"></i> GitHub Projects</h2></div>
+            <div class="section-title" id="github" data-aos="8"><h2><i class="fa-brands fa-github"></i> {t('home', 'githubProjects', lang)}</h2></div>
           )}
           {repos.map((repo: any, i: number) => (
             <a href={repo.url} target="_blank" rel="noopener" class="card card-repo" data-aos={9 + i} key={repo.id}>
@@ -158,7 +168,7 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
 
           {/* Downloads */}
           {files.length > 0 && (
-            <div class="section-title" id="downloads" data-aos="13"><h2><i class="fa-solid fa-cloud-arrow-down"></i> Downloads</h2></div>
+            <div class="section-title" id="downloads" data-aos="13"><h2><i class="fa-solid fa-cloud-arrow-down"></i> {t('home', 'downloadsTitle', lang)}</h2></div>
           )}
           {files.map((file: any, i: number) => (
             <div class="card card-download" data-aos={14 + i} key={file.key}>
@@ -168,7 +178,7 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
                   <h3 class="download-name">{file.displayName}</h3>
                   <p class="download-meta">{file.originalName} · {formatSize(file.size)}</p>
                 </div>
-                <a href={`/api/download/${file.key}`} class="download-btn" download><i class="fa-solid fa-download"></i><span>Download</span></a>
+                <a href={`/api/download/${file.key}`} class="download-btn" download><i class="fa-solid fa-download"></i><span>{t('home', 'download', lang)}</span></a>
               </div>
             </div>
           ))}
@@ -184,8 +194,8 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
           {/* Footer */}
           <div class="card card-footer" data-aos="18">
             <div class="card-inner">
-              <p>Built with <i class="fa-solid fa-heart" style="color: #EF4444"></i> &amp; <a href="https://hono.dev" target="_blank" rel="noopener">Hono</a></p>
-              <p class="footer-sub">Deployed on Cloudflare Pages</p>
+              <p>{t('home', 'builtWith', lang)} <i class="fa-solid fa-heart" style="color: #EF4444"></i> {t('home', 'and', lang)} <a href="https://hono.dev" target="_blank" rel="noopener">Hono</a></p>
+              <p class="footer-sub">{t('home', 'deployedOn', lang)}</p>
             </div>
           </div>
         </main>

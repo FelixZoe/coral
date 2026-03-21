@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { renderer } from './renderer'
 import { adminPage } from './admin'
 import { homePage } from './home'
+import { parseLang, t } from './i18n'
+import type { Lang } from './i18n'
 
 type Bindings = {
   KV: KVNamespace
@@ -57,13 +59,27 @@ async function getData(kv: KVNamespace, key: string, fallback: any) {
   return fallback
 }
 
+// ==================== 语言切换 API ====================
+app.get('/api/set-lang', (c) => {
+  const lang = c.req.query('lang') === 'en' ? 'en' : 'zh'
+  const referer = c.req.header('Referer') || '/'
+  return new Response(null, {
+    status: 302,
+    headers: {
+      'Location': referer,
+      'Set-Cookie': `portal_lang=${lang}; Path=/; SameSite=Lax; Max-Age=${365 * 24 * 3600}`,
+    },
+  })
+})
+
 // ==================== 前台首页 ====================
 app.get('/', async (c) => {
+  const lang = parseLang(c.req.header('Cookie'))
   const profile = await getData(c.env.KV, 'profile', DEFAULT_PROFILE)
   const websites = await getData(c.env.KV, 'websites', DEFAULT_WEBSITES)
   const repos = await getData(c.env.KV, 'repos', DEFAULT_REPOS)
   const files = await getData(c.env.KV, 'files', [])
-  return c.render(homePage(profile, websites, repos, files), { title: `${profile.name} — Portal` })
+  return c.render(homePage(profile, websites, repos, files, lang), { title: `${profile.name} — Portal`, lang })
 })
 
 // ==================== API: 公开数据 ====================
@@ -85,11 +101,9 @@ app.get('/api/download/:key', async (c) => {
   const settings = await getData(c.env.KV, 'settings', DEFAULT_SETTINGS)
 
   if (settings.storageMode === 'external' && fileMeta.externalUrl) {
-    // 外链模式直接 302 跳转
     return c.redirect(fileMeta.externalUrl)
   }
 
-  // KV 存储模式：从 KV 取 base64 数据
   const b64 = await c.env.KV.get(`file:${key}`)
   if (!b64) return c.json({ error: 'File data not found' }, 404)
 
@@ -112,10 +126,12 @@ async function checkAuth(c: any): Promise<boolean> {
 
 // ==================== 后台登录 ====================
 app.get('/admin/login', (c) => {
-  return c.render(adminPage('login', {}), { title: 'Admin Login' })
+  const lang = parseLang(c.req.header('Cookie'))
+  return c.render(adminPage('login', { lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
 })
 
 app.post('/admin/login', async (c) => {
+  const lang = parseLang(c.req.header('Cookie'))
   const body = await c.req.parseBody()
   const password = body.password as string
   let storedPw = await c.env.KV.get('admin_password')
@@ -124,7 +140,7 @@ app.post('/admin/login', async (c) => {
     storedPw = 'admin123'
   }
   if (password !== storedPw) {
-    return c.render(adminPage('login', { error: '密码错误' }), { title: 'Admin Login' })
+    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
   }
   const sessionId = crypto.randomUUID()
   await c.env.KV.put('session:' + sessionId, '1', { expirationTtl: 86400 })
@@ -147,12 +163,13 @@ app.get('/admin/logout', async (c) => {
 // ==================== 后台面板 ====================
 app.get('/admin', async (c) => {
   if (!await checkAuth(c)) return c.redirect('/admin/login')
+  const lang = parseLang(c.req.header('Cookie'))
   const profile = await getData(c.env.KV, 'profile', DEFAULT_PROFILE)
   const websites = await getData(c.env.KV, 'websites', DEFAULT_WEBSITES)
   const repos = await getData(c.env.KV, 'repos', DEFAULT_REPOS)
   const files = await getData(c.env.KV, 'files', [])
   const settings = await getData(c.env.KV, 'settings', DEFAULT_SETTINGS)
-  return c.render(adminPage('dashboard', { profile, websites, repos, files, settings }), { title: 'Admin Panel' })
+  return c.render(adminPage('dashboard', { profile, websites, repos, files, settings, lang }), { title: lang === 'zh' ? '管理面板' : 'Admin Panel', lang })
 })
 
 // ==================== 后台 API ====================
@@ -177,7 +194,6 @@ app.post('/admin/api/repos', async (c) => {
   return c.json({ ok: true })
 })
 
-// 上传文件 — KV 存 base64
 app.post('/admin/api/upload', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const formData = await c.req.formData()
@@ -193,7 +209,6 @@ app.post('/admin/api/upload', async (c) => {
 
   const key = Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
 
-  // 读取文件为 base64 存入 KV
   const buf = await file.arrayBuffer()
   const bytes = new Uint8Array(buf)
   let binary = ''
@@ -201,7 +216,6 @@ app.post('/admin/api/upload', async (c) => {
   const b64 = btoa(binary)
   await c.env.KV.put(`file:${key}`, b64)
 
-  // 更新文件列表
   const files: any[] = await getData(c.env.KV, 'files', [])
   files.push({
     key,
@@ -215,7 +229,6 @@ app.post('/admin/api/upload', async (c) => {
   return c.json({ ok: true, key })
 })
 
-// 添加外链文件（外部存储模式）
 app.post('/admin/api/add-link', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const { displayName, originalName, externalUrl, size, type } = await c.req.json()
@@ -237,11 +250,9 @@ app.post('/admin/api/add-link', async (c) => {
   return c.json({ ok: true, key })
 })
 
-// 删除文件
 app.post('/admin/api/delete-file', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const { key } = await c.req.json()
-  // 尝试删除 KV 中的文件数据
   await c.env.KV.delete(`file:${key}`)
   const files: any[] = await getData(c.env.KV, 'files', [])
   const newFiles = files.filter((f: any) => f.key !== key)
@@ -249,7 +260,6 @@ app.post('/admin/api/delete-file', async (c) => {
   return c.json({ ok: true })
 })
 
-// 保存设置
 app.post('/admin/api/settings', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const data = await c.req.json()
@@ -257,12 +267,12 @@ app.post('/admin/api/settings', async (c) => {
   return c.json({ ok: true })
 })
 
-// 修改密码
 app.post('/admin/api/password', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
+  const lang = parseLang(c.req.header('Cookie'))
   const { oldPassword, newPassword } = await c.req.json()
   const stored = await c.env.KV.get('admin_password') || 'admin123'
-  if (oldPassword !== stored) return c.json({ error: '旧密码错误' }, 400)
+  if (oldPassword !== stored) return c.json({ error: lang === 'zh' ? '旧密码错误' : 'Incorrect old password' }, 400)
   await c.env.KV.put('admin_password', newPassword)
   return c.json({ ok: true })
 })
