@@ -1105,17 +1105,11 @@
           initHeaderScroll();
           initMobileMenu();
           initNavIndicator();
-          initHeroClock();
-          initCardHovers();
-          initStatCountUp();
-          initDownloadSearch();
-          initTrendingFeatures();
-          initAOS();
           initPageBehaviors();
           attachSPALinks();
           // Update all pages cache
           Object.keys(allPagesCache).forEach(k => delete allPagesCache[k]);
-          eagerPrefetchAllRoutes();
+          prefetchAllRoutes();
         } else {
           window.location.reload();
         }

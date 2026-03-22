@@ -109,7 +109,7 @@ export function trendingPage(
                   </span>
                 )}
                 <span class="trending-meta-item trending-meta-time">
-                  <i class="fa-regular fa-clock"></i> {timeAgo(repo.created_at, lang)}
+                  <i class="fa-solid fa-clock"></i> {timeAgo(repo.created_at, lang)}
                 </span>
               </div>
               {repo.topics && repo.topics.length > 0 && (

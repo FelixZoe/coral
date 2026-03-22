@@ -11,7 +11,7 @@ const auth = new Hono<AppEnv>()
 // Login page
 auth.get('/admin/login', (c) => {
   const lang = parseLang(c.req.header('Cookie'))
-  return c.render(adminPage('login', { lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
+  return c.render(adminPage('login', { lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
 })
 
 // Login POST
@@ -21,7 +21,7 @@ auth.post('/admin/login', async (c) => {
 
   // Rate limiting (KV-backed)
   if (!await checkLoginRateLimit(c.env.KV, ip)) {
-    return c.render(adminPage('login', { error: t('adminLogin', 'tooMany', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
+    return c.render(adminPage('login', { error: t('adminLogin', 'tooMany', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
   }
 
   const body = await c.req.parseBody()
@@ -39,7 +39,7 @@ auth.post('/admin/login', async (c) => {
   // Verify username (constant-time-ish generic error to prevent enumeration)
   if (username !== storedUsername) {
     await recordLoginAttempt(c.env.KV, ip)
-    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
+    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
   }
 
   // Get/initialize stored password
@@ -59,7 +59,7 @@ auth.post('/admin/login', async (c) => {
   const valid = await verifyPassword(password, storedPw)
   if (!valid) {
     await recordLoginAttempt(c.env.KV, ip)
-    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
+    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
   }
 
   const sessionId = await createSession(c.env.KV, ip, c.req.header('User-Agent'))

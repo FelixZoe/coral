@@ -383,7 +383,6 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
           csrfToken: data.csrfToken || '',
         })};
       </script>`)}
-      <script src="/static/admin.js"></script>
     </div>
   )
 }

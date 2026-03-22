@@ -40,18 +40,20 @@ admin.use('/admin/*', async (c, next) => {
 // Dashboard
 admin.get('/admin', async (c) => {
   const lang = parseLang(c.req.header('Cookie'))
-  const profile = await getData(c.env.KV, 'profile', DEFAULT_PROFILE)
-  const websites = await getData(c.env.KV, 'websites', DEFAULT_WEBSITES)
-  const repos = await getData(c.env.KV, 'repos', DEFAULT_REPOS)
-  const files = await getData(c.env.KV, 'files', [])
-  const settings = await getData(c.env.KV, 'settings', DEFAULT_SETTINGS)
-  const announcements: Announcement[] = await getData(c.env.KV, 'announcements', [])
+  const [profile, websites, repos, files, settings, announcements] = await Promise.all([
+    getData(c.env.KV, 'profile', DEFAULT_PROFILE),
+    getData(c.env.KV, 'websites', DEFAULT_WEBSITES),
+    getData(c.env.KV, 'repos', DEFAULT_REPOS),
+    getData(c.env.KV, 'files', []),
+    getData(c.env.KV, 'settings', DEFAULT_SETTINGS),
+    getData<Announcement[]>(c.env.KV, 'announcements', []),
+  ])
   // Generate CSRF token for this session
   const cookie = c.req.header('Cookie') || ''
   const match = cookie.match(/__Host-portal_session=([^;]+)/) || cookie.match(/portal_session=([^;]+)/)
   const sessionId = match ? match[1] : ''
   const csrfToken = await generateCsrfToken(c.env.KV, sessionId)
-  return c.render(adminPage('dashboard', { profile, websites, repos, files, settings, lang, announcements, csrfToken }), { title: lang === 'zh' ? '管理面板' : 'Admin Panel', lang })
+  return c.render(adminPage('dashboard', { profile, websites, repos, files, settings, lang, announcements, csrfToken }), { title: lang === 'zh' ? '管理面板' : 'Admin Panel', lang, isAdmin: true })
 })
 
 // === Profile API ===
