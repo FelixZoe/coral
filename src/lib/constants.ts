@@ -4,7 +4,7 @@ import type { Profile, Website, Repo, Settings } from '../types'
 export const DEFAULT_PROFILE: Profile = {
   name: 'Alex Chen',
   tagline: 'Builder · Dreamer · Explorer',
-  avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=transparent',
+  avatar: '/static/avatar.svg',
   bio: '热爱构建美好的数字产品，用代码把想法变成现实。相信好的设计能让世界更有趣。',
   location: 'Shanghai, China',
   email: 'hello@example.com',
