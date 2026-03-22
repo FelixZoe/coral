@@ -1573,14 +1573,15 @@
         for (const name of Object.keys(provPaths)) {
           const d = provPaths[name];
           const count = Number(provinces[name] || 0);
-          let fill, strokeW, fOpacity;
+          let fill, fOpacity;
           if (count > 0) {
-            fill = getHeatColor(count); fOpacity = 1; strokeW = '0.8';
+            fill = getHeatColor(count); fOpacity = 1;
           } else {
-            fill = isDark ? '#1A1A1A' : '#F5F0E8'; fOpacity = 1; strokeW = '0.4';
+            fill = isDark ? '#1A1A1A' : '#F5F0E8'; fOpacity = 1;
           }
+          const strokeColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
           pathsHtml += `<path d="${d}" fill="${fill}" fill-opacity="${fOpacity}" `
-            + `stroke="${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}" stroke-width="${strokeW}" `
+            + `stroke="${strokeColor}" stroke-width="0.8" stroke-linejoin="round" `
             + `data-prov="${name}" class="china-prov">`
             + `</path>`;
         }

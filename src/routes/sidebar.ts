@@ -61,8 +61,8 @@ sidebar.post('/api/sidebar/visitors/track', async (c) => {
       const data = await getVisitorData(kv)
       return c.json(data)
     }
-    // Mark this IP as seen for 30 minutes
-    await kvPut(kv, dedupeKey, '1', { expirationTtl: 1800 })
+    // Mark this IP as seen for 10 minutes
+    await kvPut(kv, dedupeKey, '1', { expirationTtl: 600 })
   }
 
   // Resolve province from IP

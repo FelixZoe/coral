@@ -3884,11 +3884,11 @@ html.theme-transitioning,
 
 .china-prov {
   cursor: pointer;
-  transition: fill-opacity 0.25s ease, stroke-width 0.2s ease;
+  transition: fill-opacity 0.25s ease, stroke-width 0.2s ease, stroke 0.2s ease;
 }
 .china-prov:hover {
-  fill-opacity: 0.6 !important;
-  stroke-width: 1.2 !important;
+  fill-opacity: 0.7 !important;
+  stroke-width: 1.5 !important;
   stroke: var(--accent) !important;
   filter: url(#glow);
 }
