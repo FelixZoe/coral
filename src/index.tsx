@@ -151,16 +151,44 @@ const DEFAULT_SETTINGS = {
 }
 
 // ==================== 辅助函数 ====================
-async function getData(kv: KVNamespace | undefined, key: string, fallback: any) {
-  if (!kv) return fallback
-  try {
-    const val = await kv.get(key)
-    if (val) return JSON.parse(val)
-    await kv.put(key, JSON.stringify(fallback))
-    return fallback
-  } catch {
-    return fallback
+
+// 内存 fallback 存储 — 当 KV 不可用时使用
+// Workers isolate 在同一边缘节点上会被复用，所以内存数据有一定持久性
+const memStore = new Map<string, string>()
+
+/** KV 操作封装：KV 优先，fallback 到内存 */
+async function kvGet(kv: KVNamespace | undefined, key: string): Promise<string | null> {
+  if (kv) {
+    try { return await kv.get(key) } catch { /* fall through */ }
   }
+  return memStore.get(key) || null
+}
+
+async function kvPut(kv: KVNamespace | undefined, key: string, value: string, opts?: { expirationTtl?: number }): Promise<void> {
+  if (kv) {
+    try { await kv.put(key, value, opts); return } catch { /* fall through */ }
+  }
+  memStore.set(key, value)
+  // 内存 TTL 自动清理
+  if (opts?.expirationTtl) {
+    setTimeout(() => memStore.delete(key), opts.expirationTtl * 1000)
+  }
+}
+
+async function kvDelete(kv: KVNamespace | undefined, key: string): Promise<void> {
+  if (kv) {
+    try { await kv.delete(key); return } catch { /* fall through */ }
+  }
+  memStore.delete(key)
+}
+
+async function getData(kv: KVNamespace | undefined, key: string, fallback: any) {
+  const val = await kvGet(kv, key)
+  if (val) {
+    try { return JSON.parse(val) } catch { return fallback }
+  }
+  await kvPut(kv, key, JSON.stringify(fallback))
+  return fallback
 }
 
 // ==================== 语言切换 API ====================
@@ -426,7 +454,7 @@ app.get('/trending', async (c) => {
   // 不刷新也获取一下限流剩余信息展示
   if (!refresh) {
     const key = `ratelimit:${ip}`
-    const raw = c.env.KV ? await c.env.KV.get(key).catch(() => null) : null
+    const raw = await kvGet(c.env.KV, key)
     if (raw) {
       const data = JSON.parse(raw) as { count: number; windowStart: number }
       const now = Math.floor(Date.now() / 1000)
@@ -530,7 +558,7 @@ app.get('/api/download/:key', async (c) => {
   }
 
   // KV 存储模式
-  const b64 = c.env.KV ? await c.env.KV.get(`file:${key}`).catch(() => null) : null
+  const b64 = await kvGet(c.env.KV, `file:${key}`)
   if (!b64) return c.json({ error: 'File data not found' }, 404)
 
   const binary = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0))
@@ -546,9 +574,8 @@ async function checkAuth(c: any): Promise<boolean> {
   const cookie = c.req.header('Cookie') || ''
   const match = cookie.match(/portal_session=([^;]+)/)
   if (!match) return false
-  if (!c.env.KV) return false
   try {
-    const stored = await c.env.KV.get('session:' + match[1])
+    const stored = await kvGet(c.env.KV, 'session:' + match[1])
     return !!stored
   } catch {
     return false
@@ -573,23 +600,19 @@ app.post('/admin/login', async (c) => {
   const body = await c.req.parseBody()
   const password = sanitize((body.password as string) || '')
   
-  if (!c.env.KV) {
-    return c.render(adminPage('login', { error: lang === 'zh' ? 'KV 存储未配置' : 'KV storage not configured', lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang })
-  }
-  
-  let storedPw = await c.env.KV.get('admin_password')
+  let storedPw = await kvGet(c.env.KV, 'admin_password')
   
   if (!storedPw) {
     // First time: hash the default password and store it
     const hashed = await hashPassword('admin123')
-    await c.env.KV.put('admin_password', hashed)
+    await kvPut(c.env.KV, 'admin_password', hashed)
     storedPw = hashed
   }
   
   // Migrate plaintext passwords to hashed
   if (storedPw && !storedPw.startsWith('pbkdf2:')) {
     const hashed = await hashPassword(storedPw)
-    await c.env.KV.put('admin_password', hashed)
+    await kvPut(c.env.KV, 'admin_password', hashed)
     storedPw = hashed
   }
   
@@ -600,7 +623,7 @@ app.post('/admin/login', async (c) => {
   }
   
   const sessionId = crypto.randomUUID()
-  await c.env.KV.put('session:' + sessionId, '1', { expirationTtl: 86400 })
+  await kvPut(c.env.KV, 'session:' + sessionId, '1', { expirationTtl: 86400 })
   return new Response(null, {
     status: 302,
     headers: { 'Location': '/admin', 'Set-Cookie': `portal_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=86400` }
@@ -610,7 +633,7 @@ app.post('/admin/login', async (c) => {
 app.get('/admin/logout', async (c) => {
   const cookie = c.req.header('Cookie') || ''
   const match = cookie.match(/portal_session=([^;]+)/)
-  if (match) await c.env.KV.delete('session:' + match[1])
+  if (match) await kvDelete(c.env.KV, 'session:' + match[1])
   return new Response(null, {
     status: 302,
     headers: { 'Location': '/admin/login', 'Set-Cookie': 'portal_session=; Path=/; Max-Age=0' }
@@ -633,21 +656,21 @@ app.get('/admin', async (c) => {
 app.post('/admin/api/profile', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const data = await c.req.json()
-  await c.env.KV.put('profile', JSON.stringify(data))
+  await kvPut(c.env.KV, 'profile', JSON.stringify(data))
   return c.json({ ok: true })
 })
 
 app.post('/admin/api/websites', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const data = await c.req.json()
-  await c.env.KV.put('websites', JSON.stringify(data))
+  await kvPut(c.env.KV, 'websites', JSON.stringify(data))
   return c.json({ ok: true })
 })
 
 app.post('/admin/api/repos', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const data = await c.req.json()
-  await c.env.KV.put('repos', JSON.stringify(data))
+  await kvPut(c.env.KV, 'repos', JSON.stringify(data))
   return c.json({ ok: true })
 })
 
@@ -692,7 +715,7 @@ app.post('/admin/api/upload', async (c) => {
       uploadedAt: new Date().toISOString(),
       storageType: 'local',
     })
-    await c.env.KV.put('files', JSON.stringify(files))
+    await kvPut(c.env.KV, 'files', JSON.stringify(files))
     return c.json({ ok: true, key })
   }
 
@@ -707,7 +730,7 @@ app.post('/admin/api/upload', async (c) => {
   let binary = ''
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
   const b64 = btoa(binary)
-  await c.env.KV.put(`file:${key}`, b64)
+  await kvPut(c.env.KV, `file:${key}`, b64)
 
   const files: any[] = await getData(c.env.KV, 'files', [])
   files.push({
@@ -719,7 +742,7 @@ app.post('/admin/api/upload', async (c) => {
     uploadedAt: new Date().toISOString(),
     storageType: 'kv',
   })
-  await c.env.KV.put('files', JSON.stringify(files))
+  await kvPut(c.env.KV, 'files', JSON.stringify(files))
   return c.json({ ok: true, key })
 })
 
@@ -740,24 +763,24 @@ app.post('/admin/api/add-link', async (c) => {
     uploadedAt: new Date().toISOString(),
     isExternal: true,
   })
-  await c.env.KV.put('files', JSON.stringify(files))
+  await kvPut(c.env.KV, 'files', JSON.stringify(files))
   return c.json({ ok: true, key })
 })
 
 app.post('/admin/api/delete-file', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const { key } = await c.req.json()
-  await c.env.KV.delete(`file:${key}`)
+  await kvDelete(c.env.KV, `file:${key}`)
   const files: any[] = await getData(c.env.KV, 'files', [])
   const newFiles = files.filter((f: any) => f.key !== key)
-  await c.env.KV.put('files', JSON.stringify(newFiles))
+  await kvPut(c.env.KV, 'files', JSON.stringify(newFiles))
   return c.json({ ok: true })
 })
 
 app.post('/admin/api/settings', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
   const data = await c.req.json()
-  await c.env.KV.put('settings', JSON.stringify(data))
+  await kvPut(c.env.KV, 'settings', JSON.stringify(data))
   return c.json({ ok: true })
 })
 
@@ -766,10 +789,10 @@ app.post('/admin/api/password', async (c) => {
   const lang = parseLang(c.req.header('Cookie'))
   const { oldPassword, newPassword } = await c.req.json()
   
-  let stored = await c.env.KV.get('admin_password')
+  let stored = await kvGet(c.env.KV, 'admin_password')
   if (!stored) {
     stored = await hashPassword('admin123')
-    await c.env.KV.put('admin_password', stored)
+    await kvPut(c.env.KV, 'admin_password', stored)
   }
   
   const valid = await verifyPassword(sanitize(oldPassword || ''), stored)
@@ -777,7 +800,7 @@ app.post('/admin/api/password', async (c) => {
   
   // Hash the new password before storing
   const hashedNew = await hashPassword(sanitize(newPassword || ''))
-  await c.env.KV.put('admin_password', hashedNew)
+  await kvPut(c.env.KV, 'admin_password', hashedNew)
   return c.json({ ok: true })
 })
 
