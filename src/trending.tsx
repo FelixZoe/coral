@@ -74,7 +74,7 @@ export function trendingPage(
             </div>
             <div class="trending-repo-body">
               <div class="trending-repo-header">
-                <img src={repo.owner?.avatar_url} alt="" class="trending-owner-avatar" loading="lazy" />
+                <img src={repo.owner?.avatar_url || `https://github.com/${repo.owner?.login || 'ghost'}.png?size=40`} alt="" class="trending-owner-avatar" loading="lazy" />
                 <div class="trending-repo-names">
                   <span class="trending-owner-name">{repo.owner?.login}</span>
                   <span class="trending-name-sep">/</span>
@@ -108,9 +108,11 @@ export function trendingPage(
                     <i class="fa-solid fa-circle-dot"></i> {formatNumber(repo.open_issues_count)}
                   </span>
                 )}
+                {repo.created_at && (
                 <span class="trending-meta-item trending-meta-time">
                   <i class="fa-solid fa-clock"></i> {timeAgo(repo.created_at, lang)}
                 </span>
+                )}
               </div>
               {repo.topics && repo.topics.length > 0 && (
                 <div class="trending-topics">

@@ -161,8 +161,9 @@ async function scrapeGitHubTrending(langFilter: string, since: string = 'daily')
       const starsMatch = a.match(/\/stargazers[^>]*>[\s\S]*?<\/svg>\s*([\d,]+)/)
       const forksMatch = a.match(/\/forks[^>]*>[\s\S]*?<\/svg>\s*([\d,]+)/)
       const trendMatch = a.match(/([\d,]+)\s*stars?\s*(today|this week|this month)/i)
+      const avatarMatch = a.match(/img[^>]*src="(https:\/\/avatars\.githubusercontent\.com[^"]*)"/) || a.match(/img[^>]*avatar[^>]*src="([^"]*)"/) 
       return {
-        full_name: `${owner}/${name}`, name, owner: { login: owner },
+        full_name: `${owner}/${name}`, name, owner: { login: owner, avatar_url: avatarMatch?.[1] || `https://github.com/${owner}.png?size=40` },
         description: descMatch?.[1]?.trim() || '', language: langMatch?.[1] || '',
         stargazers_count: parseNum(starsMatch?.[1]), forks_count: parseNum(forksMatch?.[1]),
         html_url: `https://github.com/${owner}/${name}`, _starsToday: parseNum(trendMatch?.[1]),
