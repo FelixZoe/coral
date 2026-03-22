@@ -171,9 +171,10 @@ a { text-decoration: none; color: inherit; }
   backdrop-filter: blur(20px) saturate(1.6);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
   z-index: -1;
-  margin: 0 -20px;
-  padding: 0 20px;
+  margin: 0 -28px;
+  padding: 0 28px;
   border-bottom: 1px solid transparent;
+  border-radius: 0 0 var(--radius) var(--radius);
   transition: all 0.4s ease;
 }
 
