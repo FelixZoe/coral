@@ -2752,15 +2752,13 @@ a { text-decoration: none; color: inherit; }
 /* === Language Filter === */
 .trending-filters {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
   margin-bottom: 24px;
   padding: 14px 18px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .filter-label {
@@ -2772,6 +2770,7 @@ a { text-decoration: none; color: inherit; }
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .filter-label i {
@@ -2781,7 +2780,7 @@ a { text-decoration: none; color: inherit; }
 .filter-tags {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .filter-tag {

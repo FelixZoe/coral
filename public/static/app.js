@@ -557,9 +557,6 @@
 
     const lists = { hot: hotList, rising: risingList };
 
-    // Clear old bindings so re-init works after language switch
-    buttons.forEach(btn => { delete btn.dataset.trendTabBound; });
-
     function animateListSwitch(curTab, toTab) {
       const dir = toTab === 'rising' ? 'left' : 'right';
       const hideList = lists[curTab];
@@ -618,115 +615,36 @@
   }
 
   // ==============================================
-  //  TRENDING LANGUAGE FILTER — Local switching with horizontal slide
+  //  TRENDING LANGUAGE FILTER — Simple SPA navigation
   // ==============================================
   function initTrendingLangFilter() {
     const filtersWrap = document.getElementById('trendingFilters');
     if (!filtersWrap) return;
 
     const filterBtns = filtersWrap.querySelectorAll('.filter-tag[data-lang]');
-    const contentWrap = document.getElementById('trendingContent');
     const tabsWrap = document.getElementById('trendingTabs');
-    if (!contentWrap || !tabsWrap) return;
-
-    // Build index map for direction detection
-    const langList = Array.from(filterBtns).map(b => b.getAttribute('data-lang'));
-    let isFetching = false;
 
     filterBtns.forEach(btn => {
       if (btn.dataset.langBound) return;
       btn.dataset.langBound = 'true';
 
-      btn.addEventListener('click', async () => {
-        if (isFetching) return;
+      btn.addEventListener('click', () => {
         const newLang = btn.getAttribute('data-lang');
         const curLang = filtersWrap.getAttribute('data-current-lang');
         if (newLang === curLang) return;
 
-        // Determine slide direction from index
-        const fromIdx = langList.indexOf(curLang);
-        const toIdx = langList.indexOf(newLang);
-        const dir = toIdx > fromIdx ? 'left' : 'right';
-
-        // Update active state
+        // Update active state immediately for visual feedback
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         filtersWrap.setAttribute('data-current-lang', newLang);
 
-        // Update URL
-        const url = new URL(window.location.href);
-        const tab = tabsWrap.getAttribute('data-current-tab') || 'hot';
-        url.searchParams.set('tab', tab);
-        if (newLang) url.searchParams.set('lang_filter', newLang);
-        else url.searchParams.delete('lang_filter');
-        history.replaceState({ path: url.pathname + url.search }, '', url.toString());
+        // Build URL and do a full page navigation (SPA or fallback)
+        const tab = tabsWrap ? tabsWrap.getAttribute('data-current-tab') || 'hot' : 'hot';
+        let href = `/trending?tab=${tab}`;
+        if (newLang) href += `&lang_filter=${encodeURIComponent(newLang)}`;
 
-        // Start: capture current height to prevent layout jump
-        const curHeight = contentWrap.offsetHeight;
-        contentWrap.style.minHeight = curHeight + 'px';
-
-        // Slide out current content
-        isFetching = true;
-        contentWrap.classList.add('tab-fade-out-' + dir);
-
-        // Fetch new content in parallel
-        const fetchProm = (async () => {
-          const fetchURL = `/trending?tab=${tab}${newLang ? '&lang_filter=' + encodeURIComponent(newLang) : ''}`;
-          const resp = await fetch(fetchURL, { credentials: 'same-origin' });
-          if (!resp.ok) throw new Error('fetch fail');
-          return resp.text();
-        })();
-
-        // Wait for slide-out animation
-        await new Promise(r => setTimeout(r, 240));
-
-        try {
-          const html = await fetchProm;
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const newContent = doc.getElementById('trendingContent');
-          const newTabs = doc.getElementById('trendingTabs');
-
-          contentWrap.classList.remove('tab-fade-out-' + dir);
-
-          if (newContent) {
-            // Clear any stuck animation classes before swapping
-            contentWrap.className = contentWrap.className.replace(/tab-fade-\S+/g, '').trim();
-            contentWrap.innerHTML = newContent.innerHTML;
-
-            // Update tab badges
-            if (newTabs) {
-              const newBadges = newTabs.querySelectorAll('.tab-badge');
-              const curBadges = tabsWrap.querySelectorAll('.tab-badge');
-              newBadges.forEach((nb, i) => { if (curBadges[i]) curBadges[i].textContent = nb.textContent; });
-            }
-
-            // Slide in new content from opposite side
-            contentWrap.classList.add('tab-fade-in-' + dir);
-            const onIn = () => {
-              contentWrap.classList.remove('tab-fade-in-' + dir);
-              contentWrap.style.minHeight = '';
-            };
-            contentWrap.addEventListener('animationend', onIn, { once: true });
-            setTimeout(onIn, 260);
-
-            // Update refresh btn
-            const refreshBtn = document.querySelector('.trending-refresh-btn');
-            if (refreshBtn) {
-              const u = new URL(window.location.href);
-              u.searchParams.set('refresh', '1');
-              refreshBtn.setAttribute('href', u.pathname + u.search);
-            }
-
-            initTrendingTabs();
-          }
-        } catch (e) {
-          contentWrap.className = contentWrap.className.replace(/tab-fade-\S+/g, '').trim();
-          contentWrap.style.minHeight = '';
-          window.location.href = url.toString();
-        } finally {
-          isFetching = false;
-        }
+        // Use SPA navigation — reuses existing router, no freeze risk
+        navigateTo(href);
       });
     });
   }
