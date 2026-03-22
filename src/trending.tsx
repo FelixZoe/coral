@@ -152,9 +152,9 @@ export function trendingPage(
             <i class="fa-solid fa-clock"></i> {t('trending', 'dataFrom', lang)} {new Date(cacheAge).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US')}
           </span>
         )}
-        <span class={`trending-api-badge ${apiStatus === 'ok' || apiStatus === 'cached' ? 'api-ok' : apiStatus === 'fallback' ? 'api-warn' : 'api-err'}`}>
-          <i class={`fa-solid ${apiStatus === 'ok' || apiStatus === 'cached' ? 'fa-circle-check' : apiStatus === 'fallback' ? 'fa-triangle-exclamation' : 'fa-circle-xmark'}`}></i>
-          {apiStatus === 'ok' ? 'Token API' : apiStatus === 'cached' ? t('trending', 'cached', lang) : apiStatus === 'fallback' ? t('trending', 'noToken', lang) : t('trending', 'limited', lang)}
+        <span class={`trending-api-badge ${apiStatus === 'api_ok' || apiStatus === 'ok' || apiStatus === 'cached' || apiStatus === 'scrape_ok' ? 'api-ok' : apiStatus === 'fallback' || apiStatus === 'scrape_fallback' ? 'api-warn' : 'api-err'}`}>
+          <i class={`fa-solid ${apiStatus === 'api_ok' || apiStatus === 'ok' || apiStatus === 'cached' || apiStatus === 'scrape_ok' ? 'fa-circle-check' : apiStatus === 'fallback' || apiStatus === 'scrape_fallback' ? 'fa-triangle-exclamation' : 'fa-circle-xmark'}`}></i>
+          {apiStatus === 'api_ok' || apiStatus === 'ok' ? 'Token API' : apiStatus === 'cached' ? t('trending', 'cached', lang) : apiStatus === 'scrape_ok' ? t('trending', 'cached', lang) : apiStatus === 'fallback' || apiStatus === 'scrape_fallback' ? t('trending', 'noToken', lang) : t('trending', 'limited', lang)}
         </span>
         <span class="trending-quota-hint">
           <i class="fa-solid fa-gauge-high"></i> {t('trending', 'refreshQuota', lang)}: {rateLimitInfo.remaining}/30

@@ -47,7 +47,7 @@ export const LOGIN_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
 export const SHARE_PASSWORD_MAX_ATTEMPTS = 10
 export const SHARE_PASSWORD_WINDOW_S = 300 // 5 minutes
 
-export const TRENDING_CACHE_TTL = 3600
+export const TRENDING_CACHE_TTL = 7200
 export const TRENDING_RATE_LIMIT_WINDOW = 3600
 export const TRENDING_RATE_LIMIT_MAX = 30
 export const TRENDING_TOKEN_COOLDOWN = 600
