@@ -2041,6 +2041,29 @@ a { text-decoration: none; color: inherit; }
   padding: 16px 0 20px;
 }
 
+/* Back button — visible on mobile, hidden on desktop (nav is always visible) */
+.page-back-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--hover-bg);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+  border: 1px solid var(--border);
+}
+.page-back-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.page-back-btn:active {
+  transform: scale(0.92);
+}
+
 .page-header-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -2201,6 +2224,10 @@ a { text-decoration: none; color: inherit; }
   .page-header-compact {
     gap: 8px;
     padding: 12px 0 16px;
+  }
+
+  .page-back-btn {
+    display: flex;
   }
 
   .page-header-title {

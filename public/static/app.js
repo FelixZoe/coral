@@ -1001,13 +1001,30 @@
       link.addEventListener('mouseenter', () => {
         prefetchPage(href);
       }, { passive: true });
-      link.addEventListener('touchstart', () => {
+
+      // Track touch position to distinguish taps from scrolls
+      let touchStartX = 0, touchStartY = 0, touchMoved = false;
+      link.addEventListener('touchstart', (e) => {
         prefetchPage(href);
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchMoved = false;
       }, { passive: true });
 
-      // Use touchend for instant mobile navigation (no 300ms delay)
+      link.addEventListener('touchmove', (e) => {
+        if (touchMoved) return;
+        const t = e.touches[0];
+        const dx = Math.abs(t.clientX - touchStartX);
+        const dy = Math.abs(t.clientY - touchStartY);
+        // If finger moved more than 10px, it's a scroll not a tap
+        if (dx > 10 || dy > 10) touchMoved = true;
+      }, { passive: true });
+
+      // Use touchend for instant mobile navigation — only if not scrolling
       let touchNavHandled = false;
       link.addEventListener('touchend', (e) => {
+        if (touchMoved) { touchMoved = false; return; }
         if (e.cancelable) e.preventDefault();
         touchNavHandled = true;
         navigateTo(href);

@@ -17,6 +17,9 @@ export function githubPage(repos: any[], lang: Lang = 'zh') {
   const content = (
     <main class="page-content">
       <div class="page-header-compact">
+        <a href="/" class="page-back-btn" aria-label={lang === 'zh' ? '返回' : 'Back'}>
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
         <h1 class="page-header-title">
           <i class="fa-brands fa-github"></i>
           {t('home', 'githubProjects', lang)}

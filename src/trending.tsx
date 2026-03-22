@@ -136,6 +136,9 @@ export function trendingPage(
     <main class="page-content">
       {/* Page Title */}
       <div class="page-header-compact">
+        <a href="/" class="page-back-btn" aria-label={lang === 'zh' ? '返回' : 'Back'}>
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
         <h1 class="page-header-title">
           <i class="fa-brands fa-github"></i>
           {t('trending', 'title', lang)}
