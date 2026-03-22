@@ -6,9 +6,56 @@ import { kvGet, kvPut } from '../lib/kv'
 const sidebar = new Hono<AppEnv>()
 
 // ==================== VISITOR MAP (China Provinces) ====================
+// Valid province names for data cleanup
+const validProvs = new Set([
+  '北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江',
+  '江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南',
+  '广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾',
+  '内蒙古','广西','西藏','宁夏','新疆','香港','澳门','海外',
+])
+
+/** Helper: get visitor data from KV, clean invalid keys */
+async function getVisitorData(kv: KVNamespace) {
+  const raw = await kvGet(kv, 'sidebar:visitors-v2')
+  const data: { provinces: Record<string, number>; total: number } = raw
+    ? JSON.parse(raw)
+    : { provinces: {}, total: 0 }
+
+  // Clean up invalid province keys
+  let cleaned = false
+  for (const key of Object.keys(data.provinces)) {
+    if (!validProvs.has(key)) {
+      delete data.provinces[key]
+      cleaned = true
+    }
+  }
+  if (cleaned) {
+    data.total = Object.values(data.provinces).reduce((s, n) => s + n, 0)
+    await kvPut(kv, 'sidebar:visitors-v2', JSON.stringify(data))
+  }
+  return data
+}
+
+/** GET /api/sidebar/visitors — read-only, returns current visitor data */
 sidebar.get('/api/sidebar/visitors', async (c) => {
+  const data = await getVisitorData(c.env.KV)
+  return c.json(data)
+})
+
+/** POST /api/sidebar/visitors/track — record a visit (called once per page load) */
+sidebar.post('/api/sidebar/visitors/track', async (c) => {
   const kv = c.env.KV
   const ip = c.req.header('x-real-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || ''
+
+  // Deduplicate: use IP hash to prevent counting same visitor multiple times per hour
+  const ipHash = await hashIP(ip)
+  const dedupeKey = `sidebar:visitor-seen:${ipHash}`
+  const alreadySeen = await kvGet(kv, dedupeKey)
+  if (alreadySeen) {
+    // Already counted this IP recently, just return current data
+    const data = await getVisitorData(kv)
+    return c.json(data)
+  }
 
   // Resolve province from IP
   let province = ''
@@ -20,10 +67,7 @@ sidebar.get('/api/sidebar/visitors', async (c) => {
   }
 
   // Get existing visitor data
-  const raw = await kvGet(kv, 'sidebar:visitors-v2')
-  const data: { provinces: Record<string, number>; total: number } = raw
-    ? JSON.parse(raw)
-    : { provinces: {}, total: 0 }
+  const data = await getVisitorData(kv)
 
   // Increment
   data.provinces[province] = (data.provinces[province] || 0) + 1
@@ -31,6 +75,9 @@ sidebar.get('/api/sidebar/visitors', async (c) => {
 
   // Save
   await kvPut(kv, 'sidebar:visitors-v2', JSON.stringify(data))
+
+  // Mark this IP as seen for 1 hour (prevents double counting on page refreshes)
+  await kvPut(kv, dedupeKey, '1', { expirationTtl: 3600 })
 
   return c.json(data)
 })
@@ -170,10 +217,10 @@ function extractProvince(location: string): string {
   if (location.includes('香港')) return '香港'
   if (location.includes('澳门')) return '澳门'
   if (location.includes('台湾')) return '台湾'
-  // Foreign — extract first word
-  const parts = location.trim().split(/\s+/)
-  if (parts[0] && !parts[0].includes('市')) return parts[0]
-  return ''
+  // "中国" without province detail — treat as unknown domestic
+  if (location.startsWith('中国')) return ''
+  // Anything else is foreign (e.g. "美国", "日本", "澳大利亚") → "海外"
+  return '海外'
 }
 
 export default sidebar
