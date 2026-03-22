@@ -90,34 +90,14 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
         </div>
       </section>
 
-      {/* ===== STATS ROW ===== */}
-      <section class="stats-row" data-aos="3">
-        <a href="/projects" class="stat-pill">
-          <span class="stat-pill-num">{websites.length}</span>
-          <span class="stat-pill-label">{t('home', 'websites', lang)}</span>
-        </a>
-        <a href="/github" class="stat-pill">
-          <span class="stat-pill-num">{repos.length}</span>
-          <span class="stat-pill-label">{t('home', 'repos', lang)}</span>
-        </a>
-        <div class="stat-pill stat-pill-accent">
-          <span class="stat-pill-num">{totalStars}</span>
-          <span class="stat-pill-label">{t('home', 'stars', lang)}</span>
-        </div>
-        <a href="/downloads" class="stat-pill">
-          <span class="stat-pill-num">{files.length}</span>
-          <span class="stat-pill-label">{t('home', 'files', lang)}</span>
-        </a>
-      </section>
-
       {/* ===== EXPLORE SECTION ===== */}
-      <h2 class="explore-title" data-aos="4">
+      <h2 class="explore-title" data-aos="3">
         <span class="explore-line"></span>
         <span>{exploreText}</span>
         <span class="explore-line"></span>
       </h2>
 
-      <div class="nav-cards" data-aos="5">
+      <div class="nav-cards" data-aos="4">
         <a href="/projects" class="nav-card nav-card-projects">
           <div class="nav-card-icon"><i class="fa-solid fa-cube"></i></div>
           <div class="nav-card-body">
@@ -153,7 +133,7 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
       </div>
 
       {/* ===== QUOTE ===== */}
-      <section class="home-quote" data-aos="6">
+      <section class="home-quote" data-aos="5">
         <i class="fa-solid fa-quote-left home-quote-mark"></i>
         <blockquote class="home-quote-text">{profile.quote || 'The best way to predict the future is to invent it.'}</blockquote>
         <cite class="home-quote-author">— {profile.quoteAuthor || 'Alan Kay'}</cite>
