@@ -6,10 +6,25 @@ import { kvGet, kvPut } from '../lib/kv'
 const sidebar = new Hono<AppEnv>()
 
 // ==================== VISITOR MAP ====================
-// Record visitor country via CF header, return country visit counts
+// Record visitor country, return country visit counts
 sidebar.get('/api/sidebar/visitors', async (c) => {
-  const country = c.req.header('cf-ipcountry') || 'XX'
   const kv = c.env.KV
+
+  // Determine country: CF header > X-Real-IP geo lookup > fallback
+  let country = c.req.header('cf-ipcountry') || ''
+  if (!country || country === 'XX') {
+    // Try to resolve from IP using a lightweight approach
+    // Use Accept-Language header as a rough geo hint
+    const ip = c.req.header('x-real-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || ''
+    if (ip) {
+      country = await resolveCountryFromIP(ip).catch(() => '')
+    }
+  }
+  if (!country || country === 'XX') {
+    // Fallback: guess from Accept-Language header
+    const lang = c.req.header('accept-language') || ''
+    country = guessCountryFromLang(lang)
+  }
 
   // Get existing visitor data
   const raw = await kvGet(kv, 'sidebar:visitors')
@@ -114,6 +129,50 @@ async function hashIP(ip: string): Promise<string> {
   const data = encoder.encode(ip + 'sidebar-salt-2024')
   const hash = await crypto.subtle.digest('SHA-256', data)
   return Array.from(new Uint8Array(hash)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Resolve country from IP via free geo API (with cache) */
+const ipCache = new Map<string, { cc: string; ts: number }>()
+async function resolveCountryFromIP(ip: string): Promise<string> {
+  // Check memory cache (1 hour)
+  const cached = ipCache.get(ip)
+  if (cached && Date.now() - cached.ts < 3600000) return cached.cc
+
+  try {
+    // Use ip-api.com free tier (no key needed, 45 req/min)
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode`, { signal: AbortSignal.timeout(3000) })
+    if (res.ok) {
+      const data = await res.json() as { countryCode?: string }
+      const cc = data.countryCode || 'XX'
+      ipCache.set(ip, { cc, ts: Date.now() })
+      // Keep cache small
+      if (ipCache.size > 500) {
+        const oldest = [...ipCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
+        if (oldest) ipCache.delete(oldest[0])
+      }
+      return cc
+    }
+  } catch {}
+  return 'XX'
+}
+
+/** Guess country from Accept-Language header */
+function guessCountryFromLang(langHeader: string): string {
+  const map: Record<string, string> = {
+    'zh': 'CN', 'ja': 'JP', 'ko': 'KR', 'en-us': 'US', 'en-gb': 'GB',
+    'de': 'DE', 'fr': 'FR', 'es': 'ES', 'pt-br': 'BR', 'pt': 'PT',
+    'ru': 'RU', 'it': 'IT', 'nl': 'NL', 'sv': 'SE', 'pl': 'PL',
+    'uk': 'UA', 'th': 'TH', 'vi': 'VN', 'id': 'ID', 'ms': 'MY',
+    'hi': 'IN', 'ar': 'SA', 'tr': 'TR', 'he': 'IL', 'en': 'US',
+  }
+  const parts = langHeader.toLowerCase().split(',')
+  for (const part of parts) {
+    const lang = part.split(';')[0].trim()
+    if (map[lang]) return map[lang]
+    const prefix = lang.split('-')[0]
+    if (map[prefix]) return map[prefix]
+  }
+  return 'CN' // Default for this Chinese site
 }
 
 export default sidebar
