@@ -74,6 +74,114 @@ export function pageLayout({ lang, activePage, children }: LayoutProps) {
           <p class="footer-sub">{t('home', 'deployedOn', lang)}</p>
         </footer>
       </div>
+
+      {/* ===== RIGHT SIDEBAR WIDGETS ===== */}
+      <aside class="sidebar-widgets" id="sidebarWidgets">
+        {/* Toolbar buttons */}
+        <div class="sw-toolbar">
+          <button class="sw-btn" data-widget="music" title={lang === 'zh' ? '音乐' : 'Music'}>
+            <i class="fa-solid fa-music"></i>
+          </button>
+          <button class="sw-btn" data-widget="pet" title={lang === 'zh' ? '小宠物' : 'Pet'}>
+            <i class="fa-solid fa-cat"></i>
+          </button>
+          <button class="sw-btn" data-widget="visitors" title={lang === 'zh' ? '访客地图' : 'Visitors'}>
+            <i class="fa-solid fa-earth-asia"></i>
+          </button>
+          <button class="sw-btn" data-widget="guestbook" title={lang === 'zh' ? '留言墙' : 'Guestbook'}>
+            <i class="fa-solid fa-comment-dots"></i>
+          </button>
+          <button class="sw-btn" data-widget="quote" title={lang === 'zh' ? '每日一言' : 'Quote'}>
+            <i class="fa-solid fa-lightbulb"></i>
+          </button>
+        </div>
+
+        {/* Panels (shown when active) */}
+        <div class="sw-panel" id="swPanel-music">
+          <div class="sw-panel-header">
+            <span><i class="fa-solid fa-music"></i> {lang === 'zh' ? '音乐' : 'Music'}</span>
+            <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="sw-panel-body sw-music-body">
+            <div class="sw-music-cover" id="swMusicCover">
+              <i class="fa-solid fa-compact-disc"></i>
+            </div>
+            <div class="sw-music-info">
+              <div class="sw-music-title" id="swMusicTitle">Chill Vibes</div>
+              <div class="sw-music-bars" id="swMusicBars">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="sw-music-controls">
+              <button class="sw-music-prev" id="swMusicPrev"><i class="fa-solid fa-backward-step"></i></button>
+              <button class="sw-music-play" id="swMusicPlay"><i class="fa-solid fa-play"></i></button>
+              <button class="sw-music-next" id="swMusicNext"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sw-panel" id="swPanel-pet">
+          <div class="sw-panel-header">
+            <span><i class="fa-solid fa-cat"></i> {lang === 'zh' ? '小猫咪' : 'Kitty'}</span>
+            <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="sw-panel-body sw-pet-body">
+            <canvas id="swPetCanvas" width="200" height="160"></canvas>
+            <div class="sw-pet-status" id="swPetStatus">{lang === 'zh' ? '点我玩耍！' : 'Click me!'}</div>
+          </div>
+        </div>
+
+        <div class="sw-panel" id="swPanel-visitors">
+          <div class="sw-panel-header">
+            <span><i class="fa-solid fa-earth-asia"></i> {lang === 'zh' ? '访客足迹' : 'Visitors'}</span>
+            <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="sw-panel-body sw-visitors-body">
+            <div class="sw-visitors-total" id="swVisitorTotal">0</div>
+            <div class="sw-visitors-label">{lang === 'zh' ? '位访客' : 'visitors'}</div>
+            <div class="sw-visitors-map" id="swVisitorMap"></div>
+            <div class="sw-visitors-list" id="swVisitorList"></div>
+          </div>
+        </div>
+
+        <div class="sw-panel" id="swPanel-guestbook">
+          <div class="sw-panel-header">
+            <span><i class="fa-solid fa-comment-dots"></i> {lang === 'zh' ? '留言墙' : 'Guestbook'}</span>
+            <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="sw-panel-body sw-guestbook-body">
+            <div class="sw-gb-messages" id="swGbMessages"></div>
+            <div class="sw-gb-input">
+              <div class="sw-gb-emoji-row">
+                <button class="sw-gb-emoji active" data-emoji="\ud83d\ude0a">\ud83d\ude0a</button>
+                <button class="sw-gb-emoji" data-emoji="\ud83d\ude0e">\ud83d\ude0e</button>
+                <button class="sw-gb-emoji" data-emoji="\ud83d\ude80">\ud83d\ude80</button>
+                <button class="sw-gb-emoji" data-emoji="\u2764\ufe0f">\u2764\ufe0f</button>
+                <button class="sw-gb-emoji" data-emoji="\ud83d\udc4d">\ud83d\udc4d</button>
+                <button class="sw-gb-emoji" data-emoji="\ud83c\udf1f">\ud83c\udf1f</button>
+              </div>
+              <div class="sw-gb-row">
+                <input type="text" id="swGbInput" maxlength="60" placeholder={lang === 'zh' ? '说点什么...' : 'Say something...'} />
+                <button id="swGbSend"><i class="fa-solid fa-paper-plane"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sw-panel" id="swPanel-quote">
+          <div class="sw-panel-header">
+            <span><i class="fa-solid fa-lightbulb"></i> {lang === 'zh' ? '每日一言' : 'Quote'}</span>
+            <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="sw-panel-body sw-quote-body">
+            <div class="sw-quote-text" id="swQuoteText">Loading...</div>
+            <div class="sw-quote-author" id="swQuoteAuthor"></div>
+            <button class="sw-quote-refresh" id="swQuoteRefresh">
+              <i class="fa-solid fa-rotate"></i> {lang === 'zh' ? '换一个' : 'Another'}
+            </button>
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }

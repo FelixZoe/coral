@@ -1129,4 +1129,475 @@
     setTimeout(prefetchAllRoutes, 1500);
   }
 
+  // ==============================================
+  //  SIDEBAR WIDGETS
+  // ==============================================
+  function initSidebarWidgets() {
+    const sidebar = document.getElementById('sidebarWidgets');
+    if (!sidebar) return;
+
+    let activePanel = null;
+
+    // --- Panel toggle ---
+    sidebar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sw-btn');
+      const closeBtn = e.target.closest('.sw-panel-close');
+
+      if (closeBtn) {
+        closePanel();
+        return;
+      }
+
+      if (btn) {
+        const widget = btn.dataset.widget;
+        if (activePanel === widget) {
+          closePanel();
+        } else {
+          openPanel(widget);
+        }
+      }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (activePanel && !e.target.closest('.sidebar-widgets')) {
+        closePanel();
+      }
+    });
+
+    function openPanel(name) {
+      closePanel(true);
+      const panel = document.getElementById('swPanel-' + name);
+      const btn = sidebar.querySelector(`.sw-btn[data-widget="${name}"]`);
+      if (!panel || !btn) return;
+
+      btn.classList.add('active');
+      panel.classList.add('visible');
+
+      // Position panel vertically centered on the button
+      const btnRect = btn.getBoundingClientRect();
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const panelH = panel.offsetHeight || 280;
+      let top = btnRect.top - sidebarRect.top - panelH / 2 + 19;
+      top = Math.max(-sidebarRect.top + 80, Math.min(top, window.innerHeight - sidebarRect.top - panelH - 20));
+      if (window.innerWidth <= 768) {
+        panel.style.top = 'auto';
+      } else {
+        panel.style.top = top + 'px';
+      }
+
+      activePanel = name;
+
+      // Load data on first open
+      if (name === 'visitors') loadVisitors();
+      if (name === 'guestbook') loadGuestbook();
+      if (name === 'quote') loadQuote();
+      if (name === 'pet') initPet();
+    }
+
+    function closePanel(skipAnim) {
+      if (!activePanel && !skipAnim) return;
+      sidebar.querySelectorAll('.sw-btn.active').forEach(b => b.classList.remove('active'));
+      sidebar.querySelectorAll('.sw-panel.visible').forEach(p => p.classList.remove('visible'));
+      activePanel = null;
+    }
+
+    // ========== MUSIC PLAYER ==========
+    const TRACKS = [
+      { title: 'Chill Vibes', freq: [220, 330, 440] },
+      { title: 'Ocean Waves', freq: [196, 262, 392] },
+      { title: 'Night Drive', freq: [247, 370, 494] },
+      { title: 'Sunset Glow', freq: [262, 349, 523] },
+      { title: 'Morning Dew', freq: [294, 392, 587] },
+    ];
+    let musicIdx = 0, audioCtx = null, isPlaying = false, oscNodes = [], gainNode = null;
+
+    function initAudioCtx() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.06;
+      gainNode.connect(audioCtx.destination);
+    }
+
+    function playTrack() {
+      initAudioCtx();
+      stopTrack(true);
+      const track = TRACKS[musicIdx];
+      oscNodes = track.freq.map((f, i) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = ['sine', 'triangle', 'sine'][i] || 'sine';
+        osc.frequency.value = f;
+        const g = audioCtx.createGain();
+        g.gain.value = [0.08, 0.05, 0.03][i] || 0.04;
+        osc.connect(g).connect(gainNode);
+        osc.start();
+        return { osc, gain: g };
+      });
+      isPlaying = true;
+      updateMusicUI();
+    }
+
+    function stopTrack(keepState) {
+      oscNodes.forEach(n => { try { n.osc.stop(); } catch {} });
+      oscNodes = [];
+      if (!keepState) { isPlaying = false; updateMusicUI(); }
+    }
+
+    function updateMusicUI() {
+      const title = document.getElementById('swMusicTitle');
+      const bars = document.getElementById('swMusicBars');
+      const cover = document.getElementById('swMusicCover');
+      const playBtn = document.getElementById('swMusicPlay');
+      if (title) title.textContent = TRACKS[musicIdx].title;
+      if (bars) bars.classList.toggle('playing', isPlaying);
+      if (cover) cover.classList.toggle('spinning', isPlaying);
+      if (playBtn) playBtn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+    }
+
+    sidebar.querySelector('#swMusicPlay')?.addEventListener('click', () => {
+      if (isPlaying) stopTrack(); else playTrack();
+    });
+    sidebar.querySelector('#swMusicPrev')?.addEventListener('click', () => {
+      musicIdx = (musicIdx - 1 + TRACKS.length) % TRACKS.length;
+      if (isPlaying) playTrack(); else updateMusicUI();
+    });
+    sidebar.querySelector('#swMusicNext')?.addEventListener('click', () => {
+      musicIdx = (musicIdx + 1) % TRACKS.length;
+      if (isPlaying) playTrack(); else updateMusicUI();
+    });
+    updateMusicUI();
+
+    // ========== PIXEL PET ==========
+    let petInited = false;
+    function initPet() {
+      if (petInited) return;
+      petInited = true;
+
+      const canvas = document.getElementById('swPetCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+
+      let mood = 'idle'; // idle, happy, sleep, play
+      let frame = 0, eyeBlink = 0;
+      let px = W / 2 - 16, py = H / 2;
+
+      const COLORS = { body: '#FFB347', eye: '#333', nose: '#FF6B6B', mouth: '#333', ear: '#FF9500', blush: 'rgba(255,107,107,0.3)' };
+
+      function drawCat() {
+        ctx.clearRect(0, 0, W, H);
+        const bounce = mood === 'play' ? Math.sin(frame * 0.3) * 3 : (mood === 'happy' ? Math.sin(frame * 0.15) * 1.5 : 0);
+        const cy = py + bounce;
+
+        // Body
+        ctx.fillStyle = COLORS.body;
+        ctx.beginPath();
+        ctx.ellipse(px, cy + 8, 20, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head
+        ctx.beginPath();
+        ctx.ellipse(px, cy - 10, 16, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        ctx.fillStyle = COLORS.ear;
+        ctx.beginPath();
+        ctx.moveTo(px - 12, cy - 20);
+        ctx.lineTo(px - 6, cy - 32);
+        ctx.lineTo(px - 2, cy - 18);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(px + 12, cy - 20);
+        ctx.lineTo(px + 6, cy - 32);
+        ctx.lineTo(px + 2, cy - 18);
+        ctx.fill();
+
+        // Inner ears
+        ctx.fillStyle = '#FFD1A4';
+        ctx.beginPath();
+        ctx.moveTo(px - 10, cy - 21);
+        ctx.lineTo(px - 7, cy - 29);
+        ctx.lineTo(px - 4, cy - 19);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(px + 10, cy - 21);
+        ctx.lineTo(px + 7, cy - 29);
+        ctx.lineTo(px + 4, cy - 19);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = COLORS.eye;
+        if (mood === 'sleep') {
+          // Closed eyes
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = COLORS.eye;
+          ctx.beginPath();
+          ctx.arc(px - 6, cy - 10, 3, 0, Math.PI);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(px + 6, cy - 10, 3, 0, Math.PI);
+          ctx.stroke();
+          // Zzz
+          ctx.font = '10px sans-serif';
+          ctx.fillStyle = 'var(--text-tertiary, #aaa)';
+          ctx.fillText('z', px + 18, cy - 20 + Math.sin(frame * 0.1) * 3);
+          ctx.font = '7px sans-serif';
+          ctx.fillText('z', px + 24, cy - 27 + Math.sin(frame * 0.1 + 1) * 2);
+        } else if (eyeBlink > 0) {
+          ctx.fillRect(px - 8, cy - 11, 4, 1.5);
+          ctx.fillRect(px + 4, cy - 11, 4, 1.5);
+          eyeBlink--;
+        } else {
+          const eyeSize = mood === 'happy' ? 3.5 : 3;
+          ctx.beginPath();
+          ctx.arc(px - 6, cy - 10, eyeSize, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(px + 6, cy - 10, eyeSize, 0, Math.PI * 2);
+          ctx.fill();
+          // Eye shine
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(px - 5, cy - 11.5, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(px + 7, cy - 11.5, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = COLORS.nose;
+        ctx.beginPath();
+        ctx.ellipse(px, cy - 5, 2, 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        ctx.strokeStyle = COLORS.mouth;
+        ctx.lineWidth = 1;
+        if (mood === 'happy' || mood === 'play') {
+          ctx.beginPath();
+          ctx.arc(px, cy - 2, 4, 0.1 * Math.PI, 0.9 * Math.PI);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(px - 3, cy - 3);
+          ctx.lineTo(px, cy - 2);
+          ctx.lineTo(px + 3, cy - 3);
+          ctx.stroke();
+        }
+
+        // Blush
+        if (mood === 'happy') {
+          ctx.fillStyle = COLORS.blush;
+          ctx.beginPath();
+          ctx.ellipse(px - 12, cy - 6, 4, 2.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(px + 12, cy - 6, 4, 2.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Tail
+        ctx.strokeStyle = COLORS.body;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        const tailWag = Math.sin(frame * 0.15) * 8;
+        ctx.beginPath();
+        ctx.moveTo(px + 18, cy + 12);
+        ctx.quadraticCurveTo(px + 30 + tailWag, cy + 5, px + 28 + tailWag, cy - 5);
+        ctx.stroke();
+
+        // Paws
+        ctx.fillStyle = '#FFD1A4';
+        ctx.beginPath();
+        ctx.ellipse(px - 10, cy + 22, 5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(px + 10, cy + 22, 5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        frame++;
+        if (frame % 80 === 0 && mood !== 'sleep') eyeBlink = 4;
+      }
+
+      let animId;
+      function animate() {
+        drawCat();
+        animId = requestAnimationFrame(animate);
+      }
+      animate();
+
+      const statusEl = document.getElementById('swPetStatus');
+      const zhLang = document.body.getAttribute('data-lang') === 'zh';
+
+      canvas.addEventListener('click', () => {
+        const moods = ['happy', 'play', 'sleep', 'idle'];
+        const labels = zhLang
+          ? ['开心！喵~', '玩耍中...', '困了...zzZ', '发呆中...']
+          : ['Happy! Meow~', 'Playing...', 'Sleepy...zzZ', 'Idle...'];
+        const idx = moods.indexOf(mood);
+        const next = (idx + 1) % moods.length;
+        mood = moods[next];
+        if (statusEl) statusEl.textContent = labels[next];
+      });
+    }
+
+    // ========== VISITORS ==========
+    let visitorsLoaded = false;
+    async function loadVisitors() {
+      if (visitorsLoaded) return;
+      visitorsLoaded = true;
+      try {
+        const res = await fetch('/api/sidebar/visitors');
+        const data = await res.json();
+        const totalEl = document.getElementById('swVisitorTotal');
+        const listEl = document.getElementById('swVisitorList');
+        const mapEl = document.getElementById('swVisitorMap');
+        if (totalEl) totalEl.textContent = data.total || 0;
+
+        // Country flag helper
+        const flag = (cc) => {
+          if (!cc || cc === 'XX' || cc.length !== 2) return '\uD83C\uDF10';
+          return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1A5 + c.charCodeAt(0)));
+        };
+
+        if (listEl) {
+          const sorted = Object.entries(data.countries || {}).sort((a, b) => b[1] - a[1]);
+          listEl.innerHTML = sorted.map(([cc, count]) =>
+            `<span class="sw-visitor-tag"><span class="flag">${flag(cc)}</span>${cc} ${count}</span>`
+          ).join('');
+        }
+
+        // Simple SVG world map dots
+        if (mapEl) {
+          const countryPos = {
+            CN: [78,38], US: [20,38], JP: [85,38], KR: [83,37], GB: [48,30], DE: [51,32],
+            FR: [49,34], IN: [72,42], BR: [30,55], AU: [85,58], CA: [18,28], RU: [68,28],
+            SG: [76,50], HK: [80,42], TW: [82,42], NL: [50,31], SE: [52,26], IT: [52,36],
+            ES: [47,37], PL: [53,32], UA: [56,32], TH: [76,45], VN: [78,44], MY: [76,48],
+            ID: [79,52], PH: [82,45], NZ: [92,60], ZA: [55,58], MX: [18,43], AR: [28,60],
+          };
+          const countries = data.countries || {};
+          const maxCount = Math.max(...Object.values(countries), 1);
+          let dots = '';
+          for (const [cc, count] of Object.entries(countries)) {
+            const pos = countryPos[cc];
+            if (!pos) continue;
+            const r = 2 + Math.min((count / maxCount) * 4, 4);
+            const opacity = 0.4 + Math.min((count / maxCount) * 0.6, 0.6);
+            dots += `<circle cx="${pos[0]}%" cy="${pos[1]}%" r="${r}" fill="var(--accent)" opacity="${opacity}"><animate attributeName="r" values="${r};${r+1.5};${r}" dur="2s" repeatCount="indefinite"/></circle>`;
+          }
+          mapEl.innerHTML = `<svg viewBox="0 0 100 70" style="width:100%;height:100%">${dots}</svg>`;
+        }
+      } catch {}
+    }
+
+    // ========== GUESTBOOK ==========
+    let gbLoaded = false;
+    async function loadGuestbook() {
+      if (gbLoaded) return;
+      gbLoaded = true;
+      try {
+        const res = await fetch('/api/sidebar/guestbook');
+        const data = await res.json();
+        renderGbMessages(data.messages || []);
+      } catch {}
+    }
+
+    function renderGbMessages(msgs) {
+      const el = document.getElementById('swGbMessages');
+      if (!el) return;
+      if (msgs.length === 0) {
+        const zhLang = document.body.getAttribute('data-lang') === 'zh';
+        el.innerHTML = `<div style="text-align:center;color:var(--text-tertiary);font-size:0.75rem;padding:20px 0">${zhLang ? '还没有留言，来第一个吧！' : 'No messages yet. Be the first!'}</div>`;
+        return;
+      }
+      const latest = msgs.slice(-20).reverse();
+      el.innerHTML = latest.map(m => {
+        const ago = timeAgoShort(m.time);
+        return `<div class="sw-gb-msg"><span class="sw-gb-msg-emoji">${m.emoji || '\uD83D\uDE0A'}</span><span class="sw-gb-msg-text">${escHtml(m.text)}</span><span class="sw-gb-msg-time">${ago}</span></div>`;
+      }).join('');
+    }
+
+    function timeAgoShort(ts) {
+      const diff = (Date.now() - ts) / 1000;
+      if (diff < 60) return 'now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+      return Math.floor(diff / 86400) + 'd';
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Emoji selector
+    sidebar.querySelectorAll('.sw-gb-emoji').forEach(btn => {
+      btn.addEventListener('click', () => {
+        sidebar.querySelectorAll('.sw-gb-emoji').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Send message
+    const gbSendBtn = document.getElementById('swGbSend');
+    const gbInput = document.getElementById('swGbInput');
+    if (gbSendBtn && gbInput) {
+      async function sendMessage() {
+        const text = gbInput.value.trim();
+        if (!text) return;
+        const emoji = sidebar.querySelector('.sw-gb-emoji.active')?.dataset?.emoji || '\uD83D\uDE0A';
+        gbSendBtn.disabled = true;
+        try {
+          const res = await fetch('/api/sidebar/guestbook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, emoji })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            gbInput.value = '';
+            // Re-fetch all messages
+            gbLoaded = false;
+            loadGuestbook();
+          } else {
+            const zhLang = document.body.getAttribute('data-lang') === 'zh';
+            alert(data.error || (zhLang ? '发送失败' : 'Send failed'));
+          }
+        } catch {
+          alert('Network error');
+        }
+        gbSendBtn.disabled = false;
+      }
+
+      gbSendBtn.addEventListener('click', sendMessage);
+      gbInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    }
+
+    // ========== QUOTE ==========
+    let quoteLoaded = false;
+    async function loadQuote() {
+      try {
+        const res = await fetch('/api/sidebar/quote');
+        const data = await res.json();
+        const textEl = document.getElementById('swQuoteText');
+        const authorEl = document.getElementById('swQuoteAuthor');
+        if (textEl) textEl.textContent = `"${data.text}"`;
+        if (authorEl) authorEl.textContent = `— ${data.author}`;
+        quoteLoaded = true;
+      } catch {}
+    }
+
+    document.getElementById('swQuoteRefresh')?.addEventListener('click', () => {
+      loadQuote();
+    });
+  }
+
+  // Init sidebar on load
+  initSidebarWidgets();
+
 })();

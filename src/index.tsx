@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin'
 import shareRoutes from './routes/share'
 import fileRoutes from './routes/files'
 import trendingRoutes from './routes/trending'
+import sidebarRoutes from './routes/sidebar'
 
 const app = new Hono<AppEnv>()
 
@@ -85,5 +86,6 @@ app.route('/', adminRoutes)
 app.route('/', shareRoutes)
 app.route('/', fileRoutes)
 app.route('/', trendingRoutes)
+app.route('/', sidebarRoutes)
 
 export default app
