@@ -1453,10 +1453,20 @@
     // ========== VISITORS (China Province Map) ==========
     // Track visitor once per page load (POST — records IP, deduplicates on server)
     let visitorTracked = false;
-    function trackVisitor() {
+    let visitorDataCache = null;
+    async function trackVisitor() {
       if (visitorTracked) return;
       visitorTracked = true;
-      fetch('/api/sidebar/visitors/track', { method: 'POST' }).catch(() => {});
+      try {
+        const res = await fetch('/api/sidebar/visitors/track', { method: 'POST' });
+        const data = await res.json();
+        // Cache the result from track (it returns updated data)
+        if (data && typeof data.total !== 'undefined') {
+          visitorDataCache = data;
+          // If the visitors panel is already open, refresh it immediately
+          renderVisitorMap(data);
+        }
+      } catch {}
     }
     // Track on first page load
     trackVisitor();
@@ -1557,13 +1567,18 @@
           <defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
           ${pathsHtml}${labelsHtml}</svg>`;
 
-        // Hover tooltips
+        // Hover tooltips (desktop) + touch tooltips (mobile)
+        function getOrCreateTooltip() {
+          let tip = mapEl.querySelector('.map-tooltip');
+          if (!tip) { tip = document.createElement('div'); tip.className = 'map-tooltip'; mapEl.appendChild(tip); }
+          return tip;
+        }
         mapEl.querySelectorAll('.china-prov').forEach(el => {
+          // Desktop hover
           el.addEventListener('mouseenter', e => {
             const nm = el.getAttribute('data-prov');
             const cnt = provinces[nm] || 0;
-            let tip = mapEl.querySelector('.map-tooltip');
-            if (!tip) { tip = document.createElement('div'); tip.className = 'map-tooltip'; mapEl.appendChild(tip); }
+            const tip = getOrCreateTooltip();
             tip.textContent = `${nm}: ${cnt} \u8bbf\u5ba2`;
             tip.style.display = 'block';
             const rect = mapEl.getBoundingClientRect();
@@ -1575,6 +1590,28 @@
             if (tip) tip.style.display = 'none';
             if (el._mh) mapEl.removeEventListener('mousemove', el._mh);
           });
+          // Mobile tap
+          el.addEventListener('click', e => {
+            e.stopPropagation();
+            const nm = el.getAttribute('data-prov');
+            const cnt = provinces[nm] || 0;
+            const tip = getOrCreateTooltip();
+            tip.textContent = `${nm}: ${cnt} \u8bbf\u5ba2`;
+            tip.style.display = 'block';
+            const rect = mapEl.getBoundingClientRect();
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            tip.style.left = Math.min(Math.max(0, touch.clientX - rect.left - 30), rect.width - 80) + 'px';
+            tip.style.top = Math.max(0, touch.clientY - rect.top - 32) + 'px';
+            clearTimeout(mapEl._tipTimer);
+            mapEl._tipTimer = setTimeout(() => { tip.style.display = 'none'; }, 2000);
+          });
+        });
+        // Hide tooltip on map background tap
+        mapEl.addEventListener('click', (e) => {
+          if (e.target === mapEl || e.target.tagName === 'svg') {
+            const tip = mapEl.querySelector('.map-tooltip');
+            if (tip) tip.style.display = 'none';
+          }
         });
       }
 
@@ -1591,8 +1628,14 @@
     /** Load visitors data (GET — read-only, always refreshes) */
     async function loadVisitors() {
       try {
+        // If we already have fresh data from track call, use it first
+        if (visitorDataCache) {
+          renderVisitorMap(visitorDataCache);
+        }
+        // Always fetch latest data from server
         const res = await fetch('/api/sidebar/visitors');
         const data = await res.json();
+        visitorDataCache = data;
         renderVisitorMap(data);
       } catch {}
     }

@@ -3869,7 +3869,6 @@ html.theme-transitioning,
 .sw-visitors-map {
   width: 100%;
   aspect-ratio: 5 / 4;
-  max-height: 240px;
   position: relative;
   margin-bottom: 6px;
   border-radius: var(--radius-xs);
@@ -4148,11 +4147,17 @@ html.theme-transitioning,
     bottom: 56px;
     width: calc(100vw - 24px);
     max-width: 300px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
   }
 
   .sw-panel-map {
     width: calc(100vw - 24px);
-    max-width: 320px;
+    max-width: 340px;
+  }
+
+  .sw-visitors-map {
+    aspect-ratio: 5 / 4;
   }
 }
 
