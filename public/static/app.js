@@ -1530,24 +1530,57 @@
 
       if (mapEl) {
         const maxCount = Math.max(...Object.values(provinces).map(Number), 1);
-        const accentVar = 'var(--accent)';
         let pathsHtml = '';
         let labelsHtml = '';
+
+        // Heat-map color scale: light → deep as visitor count grows
+        // 6-level color stops from pale to intense
+        const heatColors = [
+          '#FFF3DC', // level 0: very light (barely any visitors)
+          '#FFE0A3', // level 1
+          '#FFCA63', // level 2
+          '#F0A830', // level 3
+          '#D4851A', // level 4
+          '#B5640B', // level 5: deep (most visitors)
+        ];
+        const darkHeatColors = [
+          '#2A2418', // level 0
+          '#3D3018', // level 1
+          '#5C4820', // level 2
+          '#8B6B1F', // level 3
+          '#C08E20', // level 4
+          '#F0B955', // level 5
+        ];
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+          || document.body.closest('[data-theme="dark"]');
+        const palette = isDark ? darkHeatColors : heatColors;
+
+        function getHeatColor(count) {
+          if (count <= 0) return null;
+          // Map count to 0~1 ratio using log scale for better spread
+          const ratio = Math.min(Math.log(count + 1) / Math.log(maxCount + 1), 1);
+          const idx = Math.min(Math.floor(ratio * (palette.length - 1)), palette.length - 2);
+          const t = (ratio * (palette.length - 1)) - idx;
+          // Interpolate between two adjacent colors
+          const c1 = palette[idx], c2 = palette[idx + 1];
+          const r = Math.round(parseInt(c1.slice(1,3),16) * (1-t) + parseInt(c2.slice(1,3),16) * t);
+          const g = Math.round(parseInt(c1.slice(3,5),16) * (1-t) + parseInt(c2.slice(3,5),16) * t);
+          const b = Math.round(parseInt(c1.slice(5,7),16) * (1-t) + parseInt(c2.slice(5,7),16) * t);
+          return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+        }
 
         for (const name of Object.keys(provPaths)) {
           const d = provPaths[name];
           const count = Number(provinces[name] || 0);
           let fill, strokeW, fOpacity;
           if (count > 0) {
-            const intensity = 0.15 + Math.min((count / maxCount) * 0.7, 0.7);
-            fill = accentVar; fOpacity = intensity; strokeW = '0.8';
+            fill = getHeatColor(count); fOpacity = 1; strokeW = '0.8';
           } else {
-            fill = 'var(--text-tertiary)'; fOpacity = 0.08; strokeW = '0.4';
+            fill = isDark ? '#1A1A1A' : '#F5F0E8'; fOpacity = 1; strokeW = '0.4';
           }
           pathsHtml += `<path d="${d}" fill="${fill}" fill-opacity="${fOpacity}" `
-            + `stroke="var(--border)" stroke-width="${strokeW}" `
+            + `stroke="${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}" stroke-width="${strokeW}" `
             + `data-prov="${name}" class="china-prov">`
-            + (count > 0 ? `<animate attributeName="fill-opacity" values="${fOpacity};${Math.min(fOpacity+0.12,0.95)};${fOpacity}" dur="3s" repeatCount="indefinite"/>` : '')
             + `</path>`;
         }
 
@@ -1557,10 +1590,12 @@
         for (const [name, count] of sortedProvs.slice(0, 6)) {
           const c = provCenter[name];
           if (!c) continue;
+          const labelColor = isDark ? '#F0EDE8' : '#1A1A1A';
+          const numColor = isDark ? '#F0B955' : '#B5640B';
           labelsHtml += `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" `
-            + `fill="var(--text-primary)" font-size="9" font-weight="600" opacity="0.85">${name}</text>`;
+            + `fill="${labelColor}" font-size="9" font-weight="600" opacity="0.9" style="text-shadow:0 0 3px ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)'}">${name}</text>`;
           labelsHtml += `<text x="${c[0]}" y="${c[1]+11}" text-anchor="middle" dominant-baseline="central" `
-            + `fill="${accentVar}" font-size="8" font-weight="700" opacity="0.9">${count}</text>`;
+            + `fill="${numColor}" font-size="8" font-weight="700" opacity="0.95" style="text-shadow:0 0 3px ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)'}">${count}</text>`;
         }
 
         mapEl.innerHTML = `<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" class="china-map-svg">
