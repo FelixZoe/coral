@@ -122,34 +122,58 @@ async function hashIP(ip: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** Resolve province from IP via ip-api.com (returns Chinese province name) */
+/** Resolve province from IP via Baidu IP API (accessible from Chinese servers) */
 const ipProvinceCache = new Map<string, { prov: string; ts: number }>()
 async function resolveProvinceFromIP(ip: string): Promise<string> {
   const cached = ipProvinceCache.get(ip)
   if (cached && Date.now() - cached.ts < 3600000) return cached.prov
 
   try {
+    // Baidu opendata API — works from Chinese servers, no key needed
     const res = await fetch(
-      `http://ip-api.com/json/${ip}?fields=regionName,country&lang=zh-CN`,
-      { signal: AbortSignal.timeout(3000) }
+      `https://opendata.baidu.com/api.php?query=${ip}&co=&resource_id=6006&oe=utf8`,
+      { signal: AbortSignal.timeout(5000) }
     )
     if (res.ok) {
-      const data = await res.json() as { regionName?: string; country?: string }
-      // ip-api returns regionName in Chinese when lang=zh-CN (e.g. "广东")
-      let prov = data.regionName || ''
-      // Normalize: remove trailing "省"/"市"/"自治区" etc for cleaner display
-      prov = prov.replace(/(省|市|自治区|特别行政区|壮族自治区|回族自治区|维吾尔自治区)$/, '')
-      if (!prov) prov = data.country || '未知'
-
-      ipProvinceCache.set(ip, { prov, ts: Date.now() })
-      if (ipProvinceCache.size > 500) {
-        const oldest = [...ipProvinceCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
-        if (oldest) ipProvinceCache.delete(oldest[0])
+      const json = await res.json() as any
+      const location: string = json?.data?.[0]?.location || ''
+      // location format: "广东省广州市 电信" or "上海市上海市 联通" or "美国 加利福尼亚"
+      let prov = extractProvince(location)
+      if (prov) {
+        ipProvinceCache.set(ip, { prov, ts: Date.now() })
+        if (ipProvinceCache.size > 500) {
+          const oldest = [...ipProvinceCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
+          if (oldest) ipProvinceCache.delete(oldest[0])
+        }
+        return prov
       }
-      return prov
     }
   } catch {}
   return '未知'
+}
+
+/** Extract province name from Baidu location string */
+function extractProvince(location: string): string {
+  if (!location) return ''
+  // Direct municipality matches
+  const municipalities = ['北京', '天津', '上海', '重庆']
+  for (const m of municipalities) {
+    if (location.includes(m)) return m
+  }
+  // Match "XX省" pattern
+  const provMatch = location.match(/^(.{2,3}?)省/)
+  if (provMatch) return provMatch[1]
+  // Match autonomous regions
+  const autoMatch = location.match(/^(内蒙古|广西|西藏|宁夏|新疆)/)
+  if (autoMatch) return autoMatch[1]
+  // Match SARs
+  if (location.includes('香港')) return '香港'
+  if (location.includes('澳门')) return '澳门'
+  if (location.includes('台湾')) return '台湾'
+  // Foreign — extract first word
+  const parts = location.trim().split(/\s+/)
+  if (parts[0] && !parts[0].includes('市')) return parts[0]
+  return ''
 }
 
 export default sidebar

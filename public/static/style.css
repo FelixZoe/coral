@@ -3852,36 +3852,29 @@ html.theme-transitioning,
 
 /* === Visitors (China Map) === */
 .sw-visitors-body {
-  padding: 12px 14px;
+  padding: 6px 8px 10px;
 }
 
-.sw-visitors-top {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.sw-visitors-total {
-  font-size: 1.4rem;
-  font-weight: 800;
+.sw-visitors-badge {
+  font-size: 0.65rem;
   color: var(--accent);
-  line-height: 1;
-}
-
-.sw-visitors-label {
-  font-size: 0.68rem;
-  color: var(--text-tertiary);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 99px;
+  padding: 2px 8px;
+  margin-left: auto;
+  margin-right: 6px;
 }
 
 .sw-visitors-map {
   width: 100%;
-  height: 160px;
+  height: 220px;
   position: relative;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--hover-bg) 50%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 40%, transparent);
   overflow: hidden;
+  cursor: crosshair;
 }
 
 .sw-visitors-map svg {
@@ -3889,12 +3882,48 @@ html.theme-transitioning,
   height: 100%;
 }
 
+.china-prov {
+  cursor: pointer;
+  transition: fill-opacity 0.25s ease, stroke-width 0.2s ease;
+}
+.china-prov:hover {
+  fill-opacity: 0.6 !important;
+  stroke-width: 1.2 !important;
+  stroke: var(--accent) !important;
+  filter: url(#glow);
+}
+
+.prov-label {
+  pointer-events: none;
+}
+
+.map-tooltip {
+  display: none;
+  position: absolute;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+
+.sw-panel-map {
+  width: 300px;
+}
+
 .sw-visitors-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   justify-content: flex-start;
-  max-height: 70px;
+  max-height: 56px;
   overflow-y: auto;
 }
 
@@ -4118,6 +4147,11 @@ html.theme-transitioning,
     bottom: 56px;
     width: calc(100vw - 24px);
     max-width: 300px;
+  }
+
+  .sw-panel-map {
+    width: calc(100vw - 24px);
+    max-width: 320px;
   }
 }
 

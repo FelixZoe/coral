@@ -131,16 +131,13 @@ export function pageLayout({ lang, activePage, children }: LayoutProps) {
           </div>
         </div>
 
-        <div class="sw-panel" id="swPanel-visitors">
+        <div class="sw-panel sw-panel-map" id="swPanel-visitors">
           <div class="sw-panel-header">
-            <span><i class="fa-solid fa-earth-asia"></i> {lang === 'zh' ? '访客足迹' : 'Visitors'}</span>
+            <span><i class="fa-solid fa-map-location-dot"></i> {lang === 'zh' ? '访客分布' : 'Visitor Map'}</span>
+            <span class="sw-visitors-badge"><span id="swVisitorTotal">0</span> {lang === 'zh' ? '访客' : 'visitors'}</span>
             <button class="sw-panel-close"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="sw-panel-body sw-visitors-body">
-            <div class="sw-visitors-top">
-              <div class="sw-visitors-total" id="swVisitorTotal">0</div>
-              <div class="sw-visitors-label">{lang === 'zh' ? '位访客' : 'visitors'}</div>
-            </div>
             <div class="sw-visitors-map" id="swVisitorMap"></div>
             <div class="sw-visitors-list" id="swVisitorList"></div>
           </div>
