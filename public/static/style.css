@@ -1158,10 +1158,12 @@ a { text-decoration: none; color: inherit; }
 .hero-avatar-wrap {
   position: relative;
   flex-shrink: 0;
+  width: 88px;
+  height: 88px;
 }
 
 .hero-avatar {
-  width: 88px; height: 88px;
+  width: 100%; height: 100%;
   border-radius: 50%;
   object-fit: cover;
   background: var(--accent-soft);
@@ -1179,7 +1181,7 @@ a { text-decoration: none; color: inherit; }
 
 .hero-avatar-ring {
   position: absolute;
-  inset: -7px;
+  inset: -6px;
   border-radius: 50%;
   border: 1.5px dashed color-mix(in srgb, var(--accent) 18%, transparent);
   animation: ringRotate 25s linear infinite;
@@ -1661,7 +1663,7 @@ a { text-decoration: none; color: inherit; }
     gap: 16px;
   }
 
-  .hero-avatar {
+  .hero-avatar-wrap {
     width: 76px; height: 76px;
   }
 
@@ -1731,7 +1733,7 @@ a { text-decoration: none; color: inherit; }
     font-size: 2rem;
   }
 
-  .hero-avatar {
+  .hero-avatar-wrap {
     width: 80px; height: 80px;
   }
 }
