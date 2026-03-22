@@ -122,42 +122,67 @@
     if (themeAnimating) return;
     themeAnimating = true;
 
-    // Spin icon
+    // Spin icon with morph animation
     document.querySelectorAll('.theme-toggle i').forEach(i => {
       i.className = iconClass + ' theme-icon-spin';
     });
 
-    // Lightweight fade overlay — single element, GPU opacity only
-    const overlay = document.createElement('div');
-    overlay.className = 'theme-fade-overlay';
-    overlay.style.background = actual === 'dark' ? '#0F0F0F' : '#FBF8F3';
-    document.body.appendChild(overlay);
+    // Try circular reveal (View Transitions API or manual ripple)
+    const useViewTransition = document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Phase 1: fade in overlay (280ms)
-    requestAnimationFrame(() => {
-      overlay.classList.add('active');
-    });
-
-    // Phase 2: switch theme while overlay covers screen
-    setTimeout(() => {
-      document.documentElement.setAttribute('data-theme', actual);
-      document.documentElement.style.colorScheme = actual === 'dark' ? 'dark only' : 'light only';
-      document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', actual === 'dark' ? 'dark only' : 'light only');
-    }, 200);
-
-    // Phase 3: fade out overlay
-    setTimeout(() => {
-      overlay.classList.remove('active');
-    }, 320);
-
-    // Cleanup
-    setTimeout(() => {
-      overlay.remove();
-      themeAnimating = false;
-      document.querySelectorAll('.theme-toggle i').forEach(i => {
-        i.classList.remove('theme-icon-spin');
+    if (useViewTransition) {
+      // Modern browsers: smooth view transition
+      const transition = document.startViewTransition(() => {
+        document.documentElement.setAttribute('data-theme', actual);
+        document.documentElement.style.colorScheme = actual === 'dark' ? 'dark only' : 'light only';
+        document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', actual === 'dark' ? 'dark only' : 'light only');
       });
-    }, 600);
+      transition.finished.then(() => {
+        themeAnimating = false;
+        document.querySelectorAll('.theme-toggle i').forEach(i => i.classList.remove('theme-icon-spin'));
+      });
+    } else {
+      // Fallback: circular ripple reveal from click position
+      const overlay = document.createElement('div');
+      overlay.className = 'theme-fade-overlay ripple';
+      overlay.style.background = actual === 'dark' ? '#0F0F0F' : '#FBF8F3';
+
+      // Calculate click position as percentage
+      const cx = ((clickEvent.clientX || window.innerWidth / 2) / window.innerWidth * 100).toFixed(1);
+      const cy = ((clickEvent.clientY || window.innerHeight / 2) / window.innerHeight * 100).toFixed(1);
+      overlay.style.setProperty('--cx', cx + '%');
+      overlay.style.setProperty('--cy', cy + '%');
+
+      document.body.appendChild(overlay);
+
+      // Phase 1: Expand ripple circle from click point
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlay.classList.add('expanding');
+        });
+      });
+
+      // Phase 2: Switch theme when ripple covers most of the screen
+      setTimeout(() => {
+        document.documentElement.setAttribute('data-theme', actual);
+        document.documentElement.style.colorScheme = actual === 'dark' ? 'dark only' : 'light only';
+        document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', actual === 'dark' ? 'dark only' : 'light only');
+      }, 250);
+
+      // Phase 3: Fade out overlay after theme is applied
+      setTimeout(() => {
+        overlay.classList.add('collapsing');
+      }, 420);
+
+      // Cleanup
+      setTimeout(() => {
+        overlay.remove();
+        themeAnimating = false;
+        document.querySelectorAll('.theme-toggle i').forEach(i => {
+          i.classList.remove('theme-icon-spin');
+        });
+      }, 750);
+    }
   }
 
   // Listen for system theme changes (for auto mode)
@@ -1063,7 +1088,14 @@
       const newLang = lang === 'zh' ? 'en' : 'zh';
       document.cookie = `portal_lang=${newLang}; path=/; max-age=${365 * 24 * 3600}; samesite=lax`;
 
-      // Smooth blur-dissolve transition
+      // Animate the lang label text with a flip effect
+      langBtn.querySelectorAll('.lang-label').forEach(label => {
+        label.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease';
+        label.style.transform = 'scale(0.8) rotateY(90deg)';
+        label.style.opacity = '0.3';
+      });
+
+      // Smooth morph-dissolve transition on content area
       const portal = document.querySelector('.portal') || document.body;
       portal.classList.add('lang-switch-out');
 
@@ -1087,10 +1119,10 @@
           // Restore theme
           const actual = getTheme();
           document.documentElement.setAttribute('data-theme', actual);
-          // Fade in
+          // Fade in with upward slide
           const newPortal = document.querySelector('.portal') || document.body;
           newPortal.classList.add('lang-switch-in');
-          setTimeout(() => newPortal.classList.remove('lang-switch-in'), 400);
+          setTimeout(() => newPortal.classList.remove('lang-switch-in'), 500);
           // Re-init all behaviors
           lang = newLang;
           initHeaderScroll();

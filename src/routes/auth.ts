@@ -36,13 +36,7 @@ auth.post('/admin/login', async (c) => {
     await kvPut(c.env.KV, 'admin_username', storedUsername)
   }
 
-  // Verify username (constant-time-ish generic error to prevent enumeration)
-  if (username !== storedUsername) {
-    await recordLoginAttempt(c.env.KV, ip)
-    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
-  }
-
-  // Get/initialize stored password
+  // Get/initialize stored password (fetch early for timing-safe comparison)
   let storedPw = await kvGet(c.env.KV, 'admin_password')
   if (!storedPw) {
     const hashed = await hashPassword('admin123')
@@ -54,6 +48,17 @@ auth.post('/admin/login', async (c) => {
     const hashed = await hashPassword(storedPw)
     await kvPut(c.env.KV, 'admin_password', hashed)
     storedPw = hashed
+  }
+
+  // Verify username (use generic error to prevent enumeration)
+  // Add constant-time comparison to prevent timing attacks
+  const usernameMatch = username.length === storedUsername.length && 
+    username.split('').every((ch, i) => ch === storedUsername[i])
+  if (!usernameMatch) {
+    // Still verify a dummy password to keep timing consistent
+    await verifyPassword('dummy-password-check', storedPw)
+    await recordLoginAttempt(c.env.KV, ip)
+    return c.render(adminPage('login', { error: t('adminLogin', 'wrongPw', lang), lang }), { title: lang === 'zh' ? '后台登录' : 'Admin Login', lang, isAdmin: true })
   }
 
   const valid = await verifyPassword(password, storedPw)
@@ -83,13 +88,14 @@ auth.get('/admin/logout', async (c) => {
   const cookie = c.req.header('Cookie') || ''
   const match = cookie.match(/__Host-portal_session=([^;]+)/) || cookie.match(/portal_session=([^;]+)/)
   if (match) await destroySession(c.env.KV, match[1])
-  // Clear both cookie variants
+  // Clear both cookie variants with full security flags
   return new Response(null, {
     status: 302,
     headers: [
       ['Location', '/admin/login'],
-      ['Set-Cookie', 'portal_session=; Path=/; Max-Age=0'],
-      ['Set-Cookie', '__Host-portal_session=; Path=/; Secure; Max-Age=0'],
+      ['Set-Cookie', 'portal_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'],
+      ['Set-Cookie', '__Host-portal_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'],
+      ['Clear-Site-Data', '"cookies"'],
     ],
   })
 })

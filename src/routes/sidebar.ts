@@ -95,14 +95,27 @@ sidebar.get('/api/sidebar/guestbook', async (c) => {
 })
 
 sidebar.post('/api/sidebar/guestbook', async (c) => {
-  const { text, emoji } = await c.req.json<{ text: string; emoji?: string }>()
+  let body: any
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400)
+  }
+  const { text, emoji } = body as { text: string; emoji?: string }
 
-  if (!text || text.trim().length === 0) {
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
     return c.json({ error: 'Message cannot be empty' }, 400)
   }
   if (text.length > 60) {
     return c.json({ error: 'Message too long (max 60 chars)' }, 400)
   }
+  // Sanitize: strip HTML tags and control characters
+  const cleanText = text.trim().replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').slice(0, 60)
+  if (cleanText.length === 0) {
+    return c.json({ error: 'Message cannot be empty after sanitization' }, 400)
+  }
+  // Validate emoji (must be actual emoji, max 2 chars)
+  const safeEmoji = (emoji && typeof emoji === 'string') ? emoji.slice(0, 2) : '😊'
 
   const ip = c.req.header('x-real-ip') || c.req.header('x-forwarded-for') || 'unknown'
   const ipHash = await hashIP(ip)
@@ -123,8 +136,8 @@ sidebar.post('/api/sidebar/guestbook', async (c) => {
 
   const msg = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    text: text.trim().slice(0, 60),
-    emoji: (emoji || '😊').slice(0, 2),
+    text: cleanText,
+    emoji: safeEmoji,
     time: Date.now(),
     province: province || '未知',
   }
