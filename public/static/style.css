@@ -5,6 +5,13 @@
 /* === Reset & Base === */
 *, *::before, *::after {
   margin: 0; padding: 0; box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile: kill 300ms tap delay */
+a, button, [role="button"], .nav-link, .filter-tag, .trending-tab,
+.mobile-menu-btn, .header-icon-btn, .lang-toggle, .theme-toggle {
+  touch-action: manipulation;
 }
 
 :root {
@@ -254,6 +261,9 @@ a { text-decoration: none; color: inherit; }
   position: relative;
   z-index: 1;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .nav-link i {
@@ -1513,6 +1523,11 @@ a { text-decoration: none; color: inherit; }
   border-color: var(--border-hover);
 }
 
+.nav-card:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.05s;
+}
+
 .nav-card-icon {
   width: 44px; height: 44px;
   border-radius: 12px;
@@ -1829,7 +1844,7 @@ a { text-decoration: none; color: inherit; }
     opacity: 0;
     transform: translateY(-10px);
     pointer-events: none;
-    transition: all 0.3s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 200;
   }
 
@@ -1843,6 +1858,13 @@ a { text-decoration: none; color: inherit; }
     padding: 12px 16px;
     font-size: 0.88rem;
     border-radius: var(--radius-xs);
+    transition: background 0.1s ease, transform 0.1s ease;
+  }
+
+  .header-nav .nav-link:active {
+    background: var(--hover-bg);
+    transform: scale(0.97);
+    transition: none;
   }
 
   .header-nav .nav-link i {
@@ -1948,21 +1970,21 @@ a { text-decoration: none; color: inherit; }
 }
 
 .slide-out-left {
-  animation: slideOutLeft 0.28s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  animation: slideOutLeft 0.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   pointer-events: none;
 }
 
 .slide-in-left {
-  animation: slideInRight 0.32s cubic-bezier(0, 0, 0.2, 1) forwards;
+  animation: slideInRight 0.22s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
 
 .slide-out-right {
-  animation: slideOutRight 0.28s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  animation: slideOutRight 0.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   pointer-events: none;
 }
 
 .slide-in-right {
-  animation: slideInLeft 0.32s cubic-bezier(0, 0, 0.2, 1) forwards;
+  animation: slideInLeft 0.22s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
 
 /* Reduce motion for accessibility */
@@ -3146,10 +3168,10 @@ a { text-decoration: none; color: inherit; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.tab-fade-out-left  { animation: tabSlideOutLeft  0.32s cubic-bezier(0.4, 0, 0.2, 1) both; }
-.tab-fade-out-right { animation: tabSlideOutRight 0.32s cubic-bezier(0.4, 0, 0.2, 1) both; }
-.tab-fade-in-left   { animation: tabSlideInLeft   0.32s cubic-bezier(0.0, 0, 0.2, 1) both; }
-.tab-fade-in-right  { animation: tabSlideInRight  0.32s cubic-bezier(0.0, 0, 0.2, 1) both; }
+.tab-fade-out-left  { animation: tabSlideOutLeft  0.22s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.tab-fade-out-right { animation: tabSlideOutRight 0.22s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.tab-fade-in-left   { animation: tabSlideInLeft   0.22s cubic-bezier(0.0, 0, 0.2, 1) both; }
+.tab-fade-in-right  { animation: tabSlideInRight  0.22s cubic-bezier(0.0, 0, 0.2, 1) both; }
 
 /* Ensure trendingContent is positioned for slide clipping */
 #trendingContent {

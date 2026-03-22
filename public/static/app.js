@@ -56,31 +56,57 @@
   }
 
   // ==============================================
-  //  MOBILE MENU
+  //  MOBILE MENU — instant touch response
   // ==============================================
   function initMobileMenu() {
     const btn = document.getElementById('mobileMenuBtn');
     const nav = document.getElementById('headerNav');
     if (!btn || !nav) return;
 
-    btn.onclick = () => {
+    function closeMenu() {
+      btn.classList.remove('open');
+      nav.classList.remove('mobile-open');
+    }
+
+    // Use both touchstart (instant on mobile) and click (fallback for desktop)
+    let touchHandled = false;
+    const toggleMenu = (e) => {
+      if (e.type === 'touchstart') {
+        touchHandled = true;
+        e.preventDefault();
+      } else if (touchHandled) {
+        touchHandled = false;
+        return; // Skip click if touch already handled
+      }
+      e.stopPropagation();
       btn.classList.toggle('open');
       nav.classList.toggle('mobile-open');
     };
+    btn.addEventListener('touchstart', toggleMenu, { passive: false });
+    btn.addEventListener('click', toggleMenu);
 
+    // Nav links: close menu instantly on touchstart for zero delay
     nav.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('touchstart', () => {
+        closeMenu();
+      }, { passive: true });
       link.addEventListener('click', () => {
-        btn.classList.remove('open');
-        nav.classList.remove('mobile-open');
+        closeMenu();
       });
     });
 
     document.addEventListener('click', (e) => {
       if (!nav.contains(e.target) && !btn.contains(e.target)) {
-        btn.classList.remove('open');
-        nav.classList.remove('mobile-open');
+        closeMenu();
       }
     });
+
+    // Close menu on touchstart outside (instant on mobile)
+    document.addEventListener('touchstart', (e) => {
+      if (nav.classList.contains('mobile-open') && !nav.contains(e.target) && !btn.contains(e.target)) {
+        closeMenu();
+      }
+    }, { passive: true });
   }
 
   // ==============================================
@@ -412,10 +438,10 @@
         showList.classList.add('tab-fade-in-' + dir);
         const onInDone = () => { showList.classList.remove('tab-fade-in-' + dir); };
         showList.addEventListener('animationend', onInDone, { once: true });
-        setTimeout(onInDone, 320);
+        setTimeout(onInDone, 240);
       };
       hideList.addEventListener('animationend', onOutDone, { once: true });
-      setTimeout(onOutDone, 320);
+      setTimeout(onOutDone, 240);
     }
 
     function updateURL() {
@@ -517,7 +543,7 @@
         })();
 
         // Wait for slide-out animation
-        await new Promise(r => setTimeout(r, 340));
+        await new Promise(r => setTimeout(r, 240));
 
         try {
           const html = await fetchProm;
@@ -545,7 +571,7 @@
               contentWrap.style.minHeight = '';
             };
             contentWrap.addEventListener('animationend', onIn, { once: true });
-            setTimeout(onIn, 360);
+            setTimeout(onIn, 260);
 
             // Update refresh btn
             const refreshBtn = document.querySelector('.trending-refresh-btn');
@@ -639,70 +665,73 @@
 
     const container = document.getElementById('pageContent');
     if (!container) {
-      // Fallback to full page nav
       window.location.href = href;
       return;
     }
 
-    // Determine slide direction
     const dir = getDirection(fromPath, toPath);
+    const isMobile = window.innerWidth <= 768;
+    const animOut = isMobile ? 120 : 200;
+    const animIn = isMobile ? 140 : 220;
 
-    // Fetch new page (use prefetch cache if available)
-    let html;
-    try {
-      if (prefetchCache[href]) {
-        html = await prefetchCache[href];
-        delete prefetchCache[href];
-      } else {
+    // Start fetching immediately (don't wait for animation)
+    const fetchPromise = (async () => {
+      try {
+        if (prefetchCache[href]) {
+          const cached = await prefetchCache[href];
+          delete prefetchCache[href];
+          return cached;
+        }
         const resp = await fetch(href, { credentials: 'same-origin' });
-        if (!resp.ok) { window.location.href = href; return; }
-        html = await resp.text();
-      }
-    } catch {
+        return resp.ok ? await resp.text() : null;
+      } catch { return null; }
+    })();
+
+    // Animate out in parallel with fetch
+    container.style.animation = `slideOut${dir === 'left' ? 'Left' : 'Right'} ${animOut}ms cubic-bezier(0.4,0,0.6,1) forwards`;
+    container.style.pointerEvents = 'none';
+
+    // Wait for BOTH animation and fetch to complete
+    const [html] = await Promise.all([
+      fetchPromise,
+      new Promise(r => setTimeout(r, animOut))
+    ]);
+
+    if (!html) {
+      container.style.animation = '';
+      container.style.pointerEvents = '';
+      isTransitioning = false;
       window.location.href = href;
       return;
     }
 
-    if (!html) { window.location.href = href; return; }
-
-    // Parse new page HTML to extract #pageContent innerHTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const newContent = doc.getElementById('pageContent');
 
     if (!newContent) {
+      container.style.animation = '';
+      container.style.pointerEvents = '';
+      isTransitioning = false;
       window.location.href = href;
       return;
     }
 
-    // Update page title
     const newTitle = doc.querySelector('title');
     if (newTitle) document.title = newTitle.textContent;
-
-    // === ANIMATE OUT ===
-    container.classList.add('slide-out-' + dir);
-
-    await new Promise(r => {
-      container.addEventListener('animationend', r, { once: true });
-      // Safety timeout
-      setTimeout(r, 400);
-    });
 
     // === SWAP CONTENT ===
     container.innerHTML = newContent.innerHTML;
     container.setAttribute('data-page', newContent.getAttribute('data-page') || '');
     window.scrollTo({ top: 0, behavior: 'instant' });
 
-    // Remove out class, add in class
-    container.classList.remove('slide-out-' + dir);
-    container.classList.add('slide-in-' + dir);
+    // === ANIMATE IN ===
+    container.style.animation = `slideIn${dir === 'left' ? 'Right' : 'Left'} ${animIn}ms cubic-bezier(0,0,0.2,1) forwards`;
 
-    await new Promise(r => {
-      container.addEventListener('animationend', r, { once: true });
-      setTimeout(r, 400);
-    });
+    await new Promise(r => setTimeout(r, animIn));
 
-    container.classList.remove('slide-in-' + dir);
+    container.style.animation = '';
+    container.style.pointerEvents = '';
 
     // === POST-TRANSITION UPDATES ===
     if (pushState) {
@@ -739,13 +768,24 @@
 
       link.dataset.spaAttached = 'true';
 
-      // Prefetch on hover
+      // Prefetch on hover (desktop) and touchstart (mobile)
       link.addEventListener('mouseenter', () => {
         prefetchPage(href);
       }, { passive: true });
+      link.addEventListener('touchstart', () => {
+        prefetchPage(href);
+      }, { passive: true });
+
+      // Use touchend for instant mobile navigation (no 300ms delay)
+      let touchNavHandled = false;
+      link.addEventListener('touchend', (e) => {
+        if (e.cancelable) e.preventDefault();
+        touchNavHandled = true;
+        navigateTo(href);
+      });
 
       link.addEventListener('click', (e) => {
-        // Let modifier keys work normally (open in new tab etc)
+        if (touchNavHandled) { touchNavHandled = false; e.preventDefault(); return; }
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
         e.preventDefault();
         navigateTo(href);
