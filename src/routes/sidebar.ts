@@ -167,6 +167,18 @@ sidebar.get('/api/sidebar/quote', (c) => {
 })
 
 // ==================== Helpers ====================
+
+/** Map Chinese administrative division codes (first 2 digits of proCode) to province names */
+const proCodeToName: Record<string, string> = {
+  '11': '北京', '12': '天津', '13': '河北', '14': '山西', '15': '内蒙古',
+  '21': '辽宁', '22': '吉林', '23': '黑龙江',
+  '31': '上海', '32': '江苏', '33': '浙江', '34': '安徽', '35': '福建', '36': '江西', '37': '山东',
+  '41': '河南', '42': '湖北', '43': '湖南', '44': '广东', '45': '广西', '46': '海南',
+  '50': '重庆', '51': '四川', '52': '贵州', '53': '云南', '54': '西藏',
+  '61': '陕西', '62': '甘肃', '63': '青海', '64': '宁夏', '65': '新疆',
+  '71': '台湾', '81': '香港', '82': '澳门',
+}
+
 async function hashIP(ip: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(ip + 'sidebar-salt-2024')
@@ -196,6 +208,7 @@ async function resolveProvinceFromIP(ip: string): Promise<string> {
   } catch {}
 
   // Fallback: try 太平洋网 IP API (works well from Chinese servers)
+  // NOTE: Response is GBK-encoded, so we use proCode (numeric) to avoid encoding issues
   if (!prov) {
     try {
       const res = await fetch(
@@ -203,27 +216,19 @@ async function resolveProvinceFromIP(ip: string): Promise<string> {
         { signal: AbortSignal.timeout(3000) }
       )
       if (res.ok) {
-        // Response is GBK-encoded, but province names are in ASCII-compatible range
         const text = await res.text()
-        try {
-          const json = JSON.parse(text) as any
-          const pro: string = json?.pro || '' // e.g. "湖北省"
-          const addr: string = json?.addr || '' // e.g. "湖北省武汉市"
-          if (pro) {
-            prov = extractProvince(pro)
-          }
-          if (!prov && addr) {
-            prov = extractProvince(addr)
-          }
-          // If API returned data but no province (foreign IP), check addr
-          if (!prov && addr && !addr.includes('中国') && addr.length > 0) {
+        // Extract proCode from response (it's ASCII, safe regardless of encoding)
+        const codeMatch = text.match(/"proCode"\s*:\s*"(\d{2})/)
+        if (codeMatch) {
+          const code = codeMatch[1]
+          prov = proCodeToName[code] || ''
+        }
+        // If no proCode found, check if it's a foreign IP (empty proCode with data)
+        if (!prov && text.includes('"ip"')) {
+          // Has data but no province → could be foreign
+          const errMatch = text.match(/"err"\s*:\s*"([^"]*)"/)
+          if (errMatch && errMatch[1] === 'noprovince') {
             prov = '海外'
-          }
-        } catch {
-          // JSON parse failed, try regex extraction from text
-          const proMatch = text.match(/"pro"\s*:\s*"([^"]+)"/)
-          if (proMatch) {
-            prov = extractProvince(proMatch[1])
           }
         }
       }
