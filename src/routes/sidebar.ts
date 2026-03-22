@@ -45,22 +45,30 @@ sidebar.get('/api/sidebar/visitors', async (c) => {
 /** POST /api/sidebar/visitors/track — record a visit (called once per page load) */
 sidebar.post('/api/sidebar/visitors/track', async (c) => {
   const kv = c.env.KV
-  const ip = c.req.header('x-real-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || ''
+  const ip = c.req.header('x-real-ip')
+    || c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+    || c.req.header('cf-connecting-ip')
+    || ''
 
-  // Deduplicate: use IP hash to prevent counting same visitor multiple times per hour
-  const ipHash = await hashIP(ip)
-  const dedupeKey = `sidebar:visitor-seen:${ipHash}`
-  const alreadySeen = await kvGet(kv, dedupeKey)
-  if (alreadySeen) {
-    // Already counted this IP recently, just return current data
-    const data = await getVisitorData(kv)
-    return c.json(data)
+  // Deduplicate: use IP hash to prevent counting same visitor multiple times
+  // If IP is empty/unknown, skip deduplication (count every request)
+  if (ip) {
+    const ipHash = await hashIP(ip)
+    const dedupeKey = `sidebar:visitor-seen:${ipHash}`
+    const alreadySeen = await kvGet(kv, dedupeKey)
+    if (alreadySeen) {
+      // Already counted this IP recently, just return current data
+      const data = await getVisitorData(kv)
+      return c.json(data)
+    }
+    // Mark this IP as seen for 30 minutes
+    await kvPut(kv, dedupeKey, '1', { expirationTtl: 1800 })
   }
 
   // Resolve province from IP
   let province = ''
   if (ip && ip !== '127.0.0.1' && !ip.startsWith('192.168.') && !ip.startsWith('10.')) {
-    province = await resolveProvinceFromIP(ip).catch(() => '')
+    province = await resolveProvinceFromIP(ip)
   }
   if (!province) {
     province = '未知'
@@ -75,9 +83,6 @@ sidebar.post('/api/sidebar/visitors/track', async (c) => {
 
   // Save
   await kvPut(kv, 'sidebar:visitors-v2', JSON.stringify(data))
-
-  // Mark this IP as seen for 1 hour (prevents double counting on page refreshes)
-  await kvPut(kv, dedupeKey, '1', { expirationTtl: 3600 })
 
   return c.json(data)
 })
@@ -113,7 +118,7 @@ sidebar.post('/api/sidebar/guestbook', async (c) => {
   // Also get province for the message
   let province = ''
   if (ip && ip !== 'unknown') {
-    province = await resolveProvinceFromIP(ip).catch(() => '')
+    province = await resolveProvinceFromIP(ip)
   }
 
   const msg = {
@@ -169,34 +174,56 @@ async function hashIP(ip: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** Resolve province from IP via Baidu IP API (accessible from Chinese servers) */
+/** Resolve province from IP via multiple APIs (with fallback) */
 const ipProvinceCache = new Map<string, { prov: string; ts: number }>()
 async function resolveProvinceFromIP(ip: string): Promise<string> {
   const cached = ipProvinceCache.get(ip)
   if (cached && Date.now() - cached.ts < 3600000) return cached.prov
 
+  let prov = ''
+
+  // Try Baidu opendata API first (works from Chinese servers, no key needed)
   try {
-    // Baidu opendata API — works from Chinese servers, no key needed
     const res = await fetch(
       `https://opendata.baidu.com/api.php?query=${ip}&co=&resource_id=6006&oe=utf8`,
-      { signal: AbortSignal.timeout(5000) }
+      { signal: AbortSignal.timeout(3000) }
     )
     if (res.ok) {
       const json = await res.json() as any
       const location: string = json?.data?.[0]?.location || ''
-      // location format: "广东省广州市 电信" or "上海市上海市 联通" or "美国 加利福尼亚"
-      let prov = extractProvince(location)
-      if (prov) {
-        ipProvinceCache.set(ip, { prov, ts: Date.now() })
-        if (ipProvinceCache.size > 500) {
-          const oldest = [...ipProvinceCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
-          if (oldest) ipProvinceCache.delete(oldest[0])
-        }
-        return prov
-      }
+      prov = extractProvince(location)
     }
   } catch {}
-  return '未知'
+
+  // Fallback: try ip-api.com (free, works globally, 45 req/min limit)
+  if (!prov) {
+    try {
+      const res = await fetch(
+        `http://ip-api.com/json/${ip}?fields=status,country,regionName&lang=zh-CN`,
+        { signal: AbortSignal.timeout(3000) }
+      )
+      if (res.ok) {
+        const json = await res.json() as any
+        if (json?.status === 'success') {
+          if (json.country === '中国') {
+            prov = extractProvince(json.regionName || '')
+            if (!prov) prov = extractProvince((json.regionName || '') + '省')
+          } else {
+            prov = '海外'
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (prov) {
+    ipProvinceCache.set(ip, { prov, ts: Date.now() })
+    if (ipProvinceCache.size > 500) {
+      const oldest = [...ipProvinceCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
+      if (oldest) ipProvinceCache.delete(oldest[0])
+    }
+  }
+  return prov || '未知'
 }
 
 /** Extract province name from Baidu location string */

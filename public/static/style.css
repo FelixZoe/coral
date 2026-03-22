@@ -3868,7 +3868,7 @@ html.theme-transitioning,
 
 .sw-visitors-map {
   width: 100%;
-  aspect-ratio: 5 / 4;
+  aspect-ratio: 516 / 505;
   position: relative;
   margin-bottom: 6px;
   border-radius: var(--radius-xs);
@@ -4157,7 +4157,7 @@ html.theme-transitioning,
   }
 
   .sw-visitors-map {
-    aspect-ratio: 5 / 4;
+    aspect-ratio: 516 / 505;
   }
 }
 
