@@ -557,6 +557,9 @@
 
     const lists = { hot: hotList, rising: risingList };
 
+    // Clear old bindings so re-init works after language switch
+    buttons.forEach(btn => { delete btn.dataset.trendTabBound; });
+
     function animateListSwitch(curTab, toTab) {
       const dir = toTab === 'rising' ? 'left' : 'right';
       const hideList = lists[curTab];
@@ -687,6 +690,8 @@
           contentWrap.classList.remove('tab-fade-out-' + dir);
 
           if (newContent) {
+            // Clear any stuck animation classes before swapping
+            contentWrap.className = contentWrap.className.replace(/tab-fade-\S+/g, '').trim();
             contentWrap.innerHTML = newContent.innerHTML;
 
             // Update tab badges
@@ -716,7 +721,7 @@
             initTrendingTabs();
           }
         } catch (e) {
-          contentWrap.classList.remove('tab-fade-out-' + dir);
+          contentWrap.className = contentWrap.className.replace(/tab-fade-\S+/g, '').trim();
           contentWrap.style.minHeight = '';
           window.location.href = url.toString();
         } finally {
