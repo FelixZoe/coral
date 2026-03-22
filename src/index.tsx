@@ -12,7 +12,6 @@ import type { Lang } from './i18n'
 
 type Bindings = {
   KV: KVNamespace
-  GITHUB_TOKENS?: string  // 逗号分隔的 GitHub tokens (环境变量)
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -222,120 +221,91 @@ app.get('/api/data', async (c) => {
 
 // ==================== API: 文件下载 ====================
 
-// ==================== GitHub Trending — Token Pool + Rate Limit ====================
+// ==================== GitHub Trending — 直接爬取 HTML (无需 Token, 全自动) ====================
 const CACHE_TTL = 3600 // 数据缓存 1 小时
 const RATE_LIMIT_WINDOW = 3600 // 限流窗口 1 小时 (秒)
 const RATE_LIMIT_MAX = 30 // 每 IP 每小时最多刷新 30 次
-const TOKEN_COOLDOWN = 600 // Token 失效后冷却 10 分钟 (秒)
 
-interface TokenStatus {
-  tokens: string[]          // 所有 token (ghp_xxx)
-  cooldowns: Record<string, number>  // token -> 冷却到期时间戳
-  lastIndex: number         // 上次使用的 token 索引
+function parseNum(s: string | undefined): number {
+  return s ? parseInt(s.replace(/,/g, '')) || 0 : 0
 }
 
-// ==================== 内置 Token 管理 ====================
-// 混淆存储的公共 GitHub tokens (fine-grained, 只有 public_repo 只读权限)
-// 使用简单的 Base64 + 字符偏移混淆，防止直接搜索
-const _K = 7 // 偏移量
-function _d(s: string): string {
+/** 爬取 github.com/trending 页面，解析仓库列表 — 无需任何 API Token */
+async function scrapeGitHubTrending(langFilter: string, since: string = 'daily'): Promise<{ items: any[]; apiStatus: string }> {
   try {
-    // 先 base64 解码，再字符偏移还原
-    const b = atob(s)
-    return b.split('').map(c => String.fromCharCode(c.charCodeAt(0) - _K)).join('')
-  } catch { return '' }
-}
+    const langPath = langFilter ? `/${encodeURIComponent(langFilter)}` : ''
+    const url = `https://github.com/trending${langPath}?since=${since}`
 
-// 内置 tokens — 需要替换为真实的混淆后 token
-// 生成方式: btoa(token.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 7)).join(''))
-const BUILTIN_TOKENS: string[] = [
-  'bm98ZnZXQDtKelBRez90X3B3eE9JflBwe39qPG17aVt0PTnCgTp5fn0=',
-].filter(Boolean)
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    })
 
-// 辅助函数：编码 token（开发时使用）
-// function encodeToken(token: string): string {
-//   return btoa(token.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 7)).join(''))
-// }
-
-/** 从多个来源加载 token 列表和状态 (KV > 环境变量 > 内置) */
-async function getTokenPool(kv: KVNamespace | undefined, envTokens?: string): Promise<TokenStatus> {
-  let tokens: string[] = []
-
-  // 1. 优先从 KV 读取 admin 配置的 token 列表
-  if (kv) {
-    const raw = await kv.get('github_tokens').catch(() => null)
-    if (raw) {
-      try { tokens = JSON.parse(raw) } catch { /* ignore */ }
+    if (!resp.ok) {
+      return { items: [], apiStatus: `scrape_error_${resp.status}` }
     }
-  }
 
-  // 2. 合并环境变量中的 tokens (GITHUB_TOKENS=ghp_xxx,ghp_yyy)
-  if (envTokens) {
-    const envList = envTokens.split(',').map(t => t.trim()).filter(Boolean)
-    for (const t of envList) {
-      if (!tokens.includes(t)) tokens.push(t)
-    }
-  }
+    const html = await resp.text()
+    const articles = html.split('<article class="Box-row">').slice(1)
 
-  // 3. 合并内置 tokens (混淆解码)
-  for (const encoded of BUILTIN_TOKENS) {
-    const decoded = _d(encoded)
-    if (decoded && !tokens.includes(decoded)) tokens.push(decoded)
-  }
+    const repos = articles.map((a: string) => {
+      // Owner / Name
+      const nameMatch = a.match(/text-normal[^>]*>\s*([^<\/]+)\s*\/\s*<\/span>\s*([^\s<]+)/s)
+      const owner = nameMatch?.[1]?.trim() || ''
+      const name = nameMatch?.[2]?.trim() || ''
+      // Description
+      const descMatch = a.match(/col-9 color-fg-muted my-1[^>]*>\s*([\s\S]*?)\s*<\/p>/)
+      // Language
+      const langMatch = a.match(/itemprop="programmingLanguage">([^<]+)/)
+      // Stars
+      const starsMatch = a.match(/\/stargazers[^>]*>[\s\S]*?<\/svg>\s*([\d,]+)/)
+      // Forks
+      const forksMatch = a.match(/\/forks[^>]*>[\s\S]*?<\/svg>\s*([\d,]+)/)
+      // Stars today/this week/this month
+      const trendMatch = a.match(/([\d,]+)\s*stars?\s*(today|this week|this month)/i)
 
-  // 读取冷却状态和轮询索引
-  let cooldowns: Record<string, number> = {}
-  let lastIndex = 0
-  if (kv) {
-    const cdRaw = await kv.get('github_token_cooldowns').catch(() => null)
-    cooldowns = cdRaw ? JSON.parse(cdRaw) : {}
-    const idxRaw = await kv.get('github_token_index').catch(() => null)
-    lastIndex = idxRaw ? parseInt(idxRaw) : 0
-  }
+      return {
+        full_name: `${owner}/${name}`,
+        name,
+        owner: { login: owner },
+        description: descMatch?.[1]?.trim() || '',
+        language: langMatch?.[1] || '',
+        stargazers_count: parseNum(starsMatch?.[1]),
+        forks_count: parseNum(forksMatch?.[1]),
+        html_url: `https://github.com/${owner}/${name}`,
+        _starsToday: parseNum(trendMatch?.[1]),
+        _trendPeriod: trendMatch?.[2] || 'today',
+      }
+    }).filter((r: any) => r.name) // 过滤掉解析失败的
 
-  return { tokens, cooldowns, lastIndex }
+    return { items: repos, apiStatus: 'ok' }
+  } catch (e: any) {
+    return { items: [], apiStatus: 'scrape_failed' }
+  }
 }
 
-/** 获取下一个可用 token (轮询 + 跳过冷却中的) */
-function pickToken(pool: TokenStatus): { token: string | null; index: number } {
-  const now = Date.now()
-  const { tokens, cooldowns, lastIndex } = pool
-  if (tokens.length === 0) return { token: null, index: 0 }
-
-  // 从 lastIndex+1 开始找一圈
-  for (let i = 0; i < tokens.length; i++) {
-    const idx = (lastIndex + 1 + i) % tokens.length
-    const t = tokens[idx]
-    const cd = cooldowns[t] || 0
-    if (now > cd) {
-      return { token: t, index: idx }
-    }
-  }
-  // 全部冷却中，fallback 无 token
-  return { token: null, index: lastIndex }
+/** 获取热门仓库 (daily trending) */
+async function getHotRepos(langFilter: string) {
+  return scrapeGitHubTrending(langFilter, 'daily')
 }
 
-/** 标记 token 进入冷却 */
-async function cooldownToken(kv: KVNamespace | undefined, pool: TokenStatus, token: string) {
-  pool.cooldowns[token] = Date.now() + TOKEN_COOLDOWN * 1000
-  if (kv) await kv.put('github_token_cooldowns', JSON.stringify(pool.cooldowns)).catch(() => {})
+/** 获取新星仓库 (weekly trending) */
+async function getRisingRepos(langFilter: string) {
+  return scrapeGitHubTrending(langFilter, 'weekly')
 }
 
-/** 更新轮询索引 */
-async function saveTokenIndex(kv: KVNamespace | undefined, index: number) {
-  if (kv) await kv.put('github_token_index', String(index)).catch(() => {})
-}
-
-/** IP 频率限制检查：返回 { allowed, remaining, resetAt } */
+/** IP 频率限制检查 */
 async function checkRateLimit(kv: KVNamespace | undefined, ip: string): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   if (!kv) return { allowed: true, remaining: RATE_LIMIT_MAX, resetAt: 0 }
   const key = `ratelimit:${ip}`
-  const raw = await kv.get(key)
+  const raw = await kv.get(key).catch(() => null)
   const now = Math.floor(Date.now() / 1000)
 
   if (raw) {
     const data = JSON.parse(raw) as { count: number; windowStart: number }
-    // 窗口过期，重置
     if (now - data.windowStart >= RATE_LIMIT_WINDOW) {
       const newData = { count: 1, windowStart: now }
       await kv.put(key, JSON.stringify(newData), { expirationTtl: RATE_LIMIT_WINDOW }).catch(() => {})
@@ -350,187 +320,43 @@ async function checkRateLimit(kv: KVNamespace | undefined, ip: string): Promise<
     return { allowed: true, remaining: RATE_LIMIT_MAX - data.count, resetAt: data.windowStart + RATE_LIMIT_WINDOW }
   }
 
-  // 新窗口
   const newData = { count: 1, windowStart: now }
   await kv.put(key, JSON.stringify(newData), { expirationTtl: RATE_LIMIT_WINDOW }).catch(() => {})
   return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW }
 }
 
-/** 带 Token 池的 GitHub Search 请求 */
-async function fetchGitHubSearch(
-  kv: KVNamespace | undefined,
-  q: string,
-  sort: string,
-  order: string,
-  perPage: number = 30,
-  envTokens?: string
-): Promise<{ items: any[]; tokenUsed: string; apiStatus: string }> {
-  const pool = await getTokenPool(kv, envTokens)
-  const params = new URLSearchParams({ q, sort, order, per_page: String(perPage) })
-  const url = `https://api.github.com/search/repositories?${params.toString()}`
-
-  // 尝试使用 token
-  const { token, index } = pickToken(pool)
-
-  if (token) {
-    try {
-      const resp = await fetch(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'portal-trending-app',
-          'Authorization': `token ${token}`,
-        },
-      })
-
-      // 检查限流 header
-      const remaining = parseInt(resp.headers.get('X-RateLimit-Remaining') || '999')
-
-      if (resp.status === 403 || resp.status === 429 || remaining <= 1) {
-        // Token 用尽，进入冷却
-        await cooldownToken(kv, pool, token)
-        // 递归重试下一个 token
-        await saveTokenIndex(kv, index)
-        return fetchGitHubWithFallback(kv, url, pool, index)
-      }
-
-      if (resp.ok) {
-        await saveTokenIndex(kv, index)
-        const data = await resp.json() as any
-        const masked = token.slice(0, 8) + '***'
-        return { items: data.items || [], tokenUsed: masked, apiStatus: 'ok' }
-      }
-
-      // 其他错误 (401 等) -> 冷却该 token
-      await cooldownToken(kv, pool, token)
-      await saveTokenIndex(kv, index)
-      return fetchGitHubWithFallback(kv, url, pool, index)
-    } catch {
-      await cooldownToken(kv, pool, token)
-      return fetchGitHubWithFallback(kv, url, pool, index)
-    }
-  }
-
-  // 无可用 token -> fallback 无认证请求
-  return fetchGitHubNoAuth(url)
-}
-
-/** 继续尝试池中下一个 token，最终 fallback 到无认证 */
-async function fetchGitHubWithFallback(
-  kv: KVNamespace | undefined,
-  url: string,
-  pool: TokenStatus,
-  startIndex: number
-): Promise<{ items: any[]; tokenUsed: string; apiStatus: string }> {
-  const now = Date.now()
-
-  for (let i = 0; i < pool.tokens.length; i++) {
-    const idx = (startIndex + 1 + i) % pool.tokens.length
-    const t = pool.tokens[idx]
-    const cd = pool.cooldowns[t] || 0
-    if (now <= cd) continue // 跳过冷却中的
-
-    try {
-      const resp = await fetch(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'portal-trending-app',
-          'Authorization': `token ${t}`,
-        },
-      })
-      const remaining = parseInt(resp.headers.get('X-RateLimit-Remaining') || '999')
-
-      if (resp.status === 403 || resp.status === 429 || remaining <= 1) {
-        await cooldownToken(kv, pool, t)
-        continue
-      }
-      if (resp.ok) {
-        await saveTokenIndex(kv, idx)
-        const data = await resp.json() as any
-        const masked = t.slice(0, 8) + '***'
-        return { items: data.items || [], tokenUsed: masked, apiStatus: 'ok' }
-      }
-      await cooldownToken(kv, pool, t)
-    } catch {
-      await cooldownToken(kv, pool, t)
-    }
-  }
-
-  // 所有 token 都失败 -> 无认证
-  return fetchGitHubNoAuth(url)
-}
-
-/** 无认证请求 (60次/小时) */
-async function fetchGitHubNoAuth(url: string): Promise<{ items: any[]; tokenUsed: string; apiStatus: string }> {
-  try {
-    const resp = await fetch(url, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'portal-trending-app',
-      },
-    })
-    if (!resp.ok) return { items: [], tokenUsed: 'none', apiStatus: resp.status === 403 ? 'rate_limited' : 'error' }
-    const data = await resp.json() as any
-    return { items: data.items || [], tokenUsed: 'none', apiStatus: 'fallback' }
-  } catch {
-    return { items: [], tokenUsed: 'none', apiStatus: 'error' }
-  }
-}
-
-function getDateStr(daysAgo: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - daysAgo)
-  return d.toISOString().split('T')[0]
-}
-
-async function getHotRepos(kv: KVNamespace | undefined, langFilter: string, envTokens?: string) {
-  const langQ = langFilter ? ` language:${langFilter}` : ''
-  const q = `stars:>5000${langQ}`
-  return fetchGitHubSearch(kv, q, 'stars', 'desc', 30, envTokens)
-}
-
-async function getRisingRepos(kv: KVNamespace | undefined, langFilter: string, envTokens?: string) {
-  const weekAgo = getDateStr(7)
-  const langQ = langFilter ? ` language:${langFilter}` : ''
-  const q = `created:>${weekAgo}${langQ}`
-  const result = await fetchGitHubSearch(kv, q, 'stars', 'desc', 30, envTokens)
-  return {
-    ...result,
-    items: result.items.map(r => ({ ...r, _starsToday: r.stargazers_count })),
-  }
-}
-
 interface CachedData {
   repos: any[]
   timestamp: string
-  tokenUsed: string
   apiStatus: string
 }
 
-async function getCachedTrending(kv: KVNamespace | undefined, tab: string, langFilter: string, forceRefresh: boolean = false, envTokens?: string) {
+async function getCachedTrending(kv: KVNamespace | undefined, tab: string, langFilter: string, forceRefresh: boolean = false) {
   const cacheKey = `trending:${tab}:${langFilter || 'all'}`
 
+  // 尝试读取缓存
   if (!forceRefresh && kv) {
     const cached = await kv.get(cacheKey).catch(() => null)
     if (cached) {
       try {
         const data: CachedData = JSON.parse(cached)
-        return { repos: data.repos, cacheAge: data.timestamp, tokenUsed: data.tokenUsed || '?', apiStatus: data.apiStatus || 'cached' }
+        return { repos: data.repos, cacheAge: data.timestamp, tokenUsed: 'scrape', apiStatus: data.apiStatus || 'cached' }
       } catch { /* ignore */ }
     }
   }
 
+  // 爬取新数据
   const result = tab === 'rising'
-    ? await getRisingRepos(kv, langFilter, envTokens)
-    : await getHotRepos(kv, langFilter, envTokens)
+    ? await getRisingRepos(langFilter)
+    : await getHotRepos(langFilter)
 
   const payload: CachedData = {
     repos: result.items,
     timestamp: new Date().toISOString(),
-    tokenUsed: result.tokenUsed,
     apiStatus: result.apiStatus,
   }
   if (kv) await kv.put(cacheKey, JSON.stringify(payload), { expirationTtl: CACHE_TTL }).catch(() => {})
-  return { repos: payload.repos, cacheAge: payload.timestamp, tokenUsed: payload.tokenUsed, apiStatus: payload.apiStatus }
+  return { repos: payload.repos, cacheAge: payload.timestamp, tokenUsed: 'scrape', apiStatus: payload.apiStatus }
 }
 
 /** 获取客户端 IP */
@@ -542,23 +368,10 @@ function getClientIP(c: any): string {
 }
 
 /** 获取 API 状态概览 (后台用) */
-async function getApiStatusInfo(kv: KVNamespace | undefined, envTokens?: string) {
-  const pool = await getTokenPool(kv, envTokens)
-  const now = Date.now()
-  const tokenStatuses = pool.tokens.map((t, i) => {
-    const cd = pool.cooldowns[t] || 0
-    return {
-      index: i,
-      masked: t.slice(0, 8) + '***' + t.slice(-4),
-      active: now > cd,
-      cooldownUntil: cd > now ? new Date(cd).toISOString() : null,
-    }
-  })
-  const activeCount = tokenStatuses.filter(t => t.active).length
+function getApiStatusInfo() {
   return {
-    totalTokens: pool.tokens.length,
-    activeTokens: activeCount,
-    tokens: tokenStatuses,
+    mode: 'html_scrape',
+    description: 'Scrapes github.com/trending directly — no API tokens needed',
     rateLimitMax: RATE_LIMIT_MAX,
     rateLimitWindow: RATE_LIMIT_WINDOW,
     cacheTtl: CACHE_TTL,
@@ -573,8 +386,6 @@ app.get('/trending', async (c) => {
   const langFilter = c.req.query('lang_filter') || ''
   const refresh = c.req.query('refresh') === '1'
   const ip = getClientIP(c)
-  const envTokens = c.env.GITHUB_TOKENS
-
   let hotRepos: any[] = []
   let risingRepos: any[] = []
   let cacheAge = ''
@@ -594,18 +405,18 @@ app.get('/trending', async (c) => {
     const forceRefresh = refresh && rateLimitInfo.allowed
 
     if (tab === 'rising') {
-      const result = await getCachedTrending(c.env.KV, 'rising', langFilter, forceRefresh, envTokens)
+      const result = await getCachedTrending(c.env.KV, 'rising', langFilter, forceRefresh)
       risingRepos = result.repos
       cacheAge = result.cacheAge
       apiStatus = result.apiStatus
-      const hotResult = await getCachedTrending(c.env.KV, 'hot', langFilter, false, envTokens)
+      const hotResult = await getCachedTrending(c.env.KV, 'hot', langFilter)
       hotRepos = hotResult.repos
     } else {
-      const result = await getCachedTrending(c.env.KV, 'hot', langFilter, forceRefresh, envTokens)
+      const result = await getCachedTrending(c.env.KV, 'hot', langFilter, forceRefresh)
       hotRepos = result.repos
       cacheAge = result.cacheAge
       apiStatus = result.apiStatus
-      const risingResult = await getCachedTrending(c.env.KV, 'rising', langFilter, false, envTokens)
+      const risingResult = await getCachedTrending(c.env.KV, 'rising', langFilter)
       risingRepos = risingResult.repos
     }
   } catch {
@@ -667,54 +478,25 @@ app.get('/api/trending', async (c) => {
 
 app.get('/admin/api/github-tokens', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
-  const info = await getApiStatusInfo(c.env.KV, c.env.GITHUB_TOKENS)
+  const info = getApiStatusInfo()
   return c.json(info)
 })
 
+// Token management routes kept for backward compatibility but no longer needed
+// Trending data is now fetched by scraping github.com/trending (no tokens required)
 app.post('/admin/api/github-tokens', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
-  if (!c.env.KV) return c.json({ error: 'KV not available' }, 503)
-  const { tokens } = await c.req.json() as { tokens: string[] }
-  // 过滤空值，去重
-  const clean = [...new Set(tokens.filter(t => t && t.trim().length > 0).map(t => t.trim()))]
-  await c.env.KV.put('github_tokens', JSON.stringify(clean))
-  // 重置冷却和索引
-  await c.env.KV.put('github_token_cooldowns', JSON.stringify({}))
-  await c.env.KV.put('github_token_index', '0')
-  return c.json({ ok: true, count: clean.length })
+  return c.json({ ok: true, message: 'Tokens no longer needed — using HTML scraping mode' })
 })
 
 app.post('/admin/api/github-tokens/add', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
-  if (!c.env.KV) return c.json({ error: 'KV not available' }, 503)
-  const { tokens: newTokens } = await c.req.json() as { tokens: string[] }
-  const raw = await c.env.KV.get('github_tokens')
-  const existing: string[] = raw ? JSON.parse(raw) : []
-  const clean = [...new Set([
-    ...existing,
-    ...newTokens.filter(t => t && t.trim().length > 0).map(t => t.trim())
-  ])]
-  await c.env.KV.put('github_tokens', JSON.stringify(clean))
-  return c.json({ ok: true, count: clean.length })
+  return c.json({ ok: true, message: 'Tokens no longer needed — using HTML scraping mode' })
 })
 
 app.post('/admin/api/github-tokens/remove', async (c) => {
   if (!await checkAuth(c)) return c.json({ error: 'Unauthorized' }, 401)
-  if (!c.env.KV) return c.json({ error: 'KV not available' }, 503)
-  const { indices } = await c.req.json() as { indices: number[] }
-  const raw = await c.env.KV.get('github_tokens')
-  const existing: string[] = raw ? JSON.parse(raw) : []
-  const clean = existing.filter((_, idx) => !indices.includes(idx))
-  await c.env.KV.put('github_tokens', JSON.stringify(clean))
-  // 清除被删除 token 的冷却状态
-  const cdRaw = await c.env.KV.get('github_token_cooldowns')
-  if (cdRaw) {
-    const cooldowns: Record<string, number> = JSON.parse(cdRaw)
-    const removedTokens = existing.filter((_, idx) => indices.includes(idx))
-    removedTokens.forEach(t => delete cooldowns[t])
-    await c.env.KV.put('github_token_cooldowns', JSON.stringify(cooldowns))
-  }
-  return c.json({ ok: true, count: clean.length })
+  return c.json({ ok: true, message: 'Tokens no longer needed — using HTML scraping mode' })
 })
 
 app.get('/api/download/:key', async (c) => {
