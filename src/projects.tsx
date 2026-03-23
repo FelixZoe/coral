@@ -1,4 +1,4 @@
-/** projects.tsx — 网站项目独立页面 */
+/** projects.tsx — 网站项目独立页面 (超高级感) */
 import type { Lang } from './i18n'
 import { t } from './i18n'
 import { pageLayout } from './layout'
@@ -21,26 +21,31 @@ export function projectsPage(websites: any[], lang: Lang = 'zh') {
 
       {websites.length === 0 && (
         <div class="page-empty">
-          <i class="fa-solid fa-folder-open"></i>
-          <p>{lang === 'zh' ? '暂无项目' : 'No projects yet'}</p>
+          <div class="page-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+          <p class="page-empty-title">{lang === 'zh' ? '暂无项目' : 'No projects yet'}</p>
+          <p class="page-empty-sub">{lang === 'zh' ? '稍后会有精彩内容' : 'Exciting content coming soon'}</p>
         </div>
       )}
 
       <div class="projects-grid">
         {websites.map((site: any, i: number) => (
-          <a href={site.url} target="_blank" rel="noopener" class="card card-website" data-aos={i + 1} key={site.id}>
-            <div class="card-inner">
-              <div class="website-icon" style={`--accent: ${site.color || '#E8A838'}`}>
-                <i class={site.icon || 'fa-solid fa-globe'}></i>
+          <a href={site.url} target="_blank" rel="noopener" class="pj-card" style={`animation-delay:${Math.min(i * 0.06, 0.4)}s`} key={site.id}>
+            <div class="pj-card-inner">
+              <div class="pj-card-head">
+                <div class="pj-icon" style={`--pj-accent: ${site.color || '#E8A838'}`}>
+                  <i class={site.icon || 'fa-solid fa-globe'}></i>
+                </div>
+                <div class="pj-title-wrap">
+                  <h3 class="pj-title">{site.title}</h3>
+                  <span class="pj-go"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                </div>
               </div>
-              <h3 class="website-title">{site.title}</h3>
-              <p class="website-desc">{site.description}</p>
-              <div class="website-tags">
+              <p class="pj-desc">{site.description}</p>
+              <div class="pj-tags">
                 {(site.tags || '').split(',').filter(Boolean).map((tag: string) => (
-                  <span class="tag" key={tag}>{tag.trim()}</span>
+                  <span class="pj-tag" key={tag}>{tag.trim()}</span>
                 ))}
               </div>
-              <span class="card-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
             </div>
           </a>
         ))}

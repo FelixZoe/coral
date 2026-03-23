@@ -1,4 +1,4 @@
-/** downloads.tsx — 文件下载独立页面 */
+/** downloads.tsx — 文件下载独立页面 (超高级感) */
 import type { Lang } from './i18n'
 import { t } from './i18n'
 import { pageLayout } from './layout'
@@ -23,6 +23,18 @@ function fileIcon(type: string): string {
   if (type.includes('sheet') || type.includes('excel')) return 'fa-solid fa-file-excel'
   if (type.includes('presentation') || type.includes('powerpoint')) return 'fa-solid fa-file-powerpoint'
   return 'fa-solid fa-file'
+}
+
+function fileColor(type: string): string {
+  if (!type) return '#E8A838'
+  if (type.startsWith('image/')) return '#7C5CFC'
+  if (type.startsWith('video/')) return '#EF4444'
+  if (type.startsWith('audio/')) return '#22C55E'
+  if (type.includes('pdf')) return '#EF4444'
+  if (type.includes('zip') || type.includes('rar') || type.includes('tar')) return '#F59E0B'
+  if (type.includes('word') || type.includes('document')) return '#3B82F6'
+  if (type.includes('sheet') || type.includes('excel')) return '#22C55E'
+  return '#E8A838'
 }
 
 export function downloadsPage(files: any[], lang: Lang = 'zh', isAdmin: boolean = false) {
@@ -68,43 +80,42 @@ export function downloadsPage(files: any[], lang: Lang = 'zh', isAdmin: boolean 
 
       {files.length === 0 && (
         <div class="page-empty">
-          <i class="fa-solid fa-folder-open"></i>
-          <p>{lang === 'zh' ? '暂无文件' : 'No files yet'}</p>
+          <div class="page-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+          <p class="page-empty-title">{lang === 'zh' ? '暂无文件' : 'No files yet'}</p>
+          <p class="page-empty-sub">{lang === 'zh' ? '稍后上传精彩资源' : 'Resources coming soon'}</p>
         </div>
       )}
 
-      <div class="downloads-list" id="dlList">
+      <div class="dl-list" id="dlList">
         {files.map((file: any, i: number) => {
           const name = file.displayName || file.originalName || file.key
           const ext = name.includes('.') ? name.split('.').pop()!.toLowerCase() : ''
           const searchData = [name, file.type || '', ext, file.isExternal ? 'external' : '', file.storageType || ''].join('|')
+          const color = fileColor(file.type)
           return (
-            <div class="card download-card" data-aos={i + 1} data-search={searchData} key={file.key}>
-              <div class="card-inner download-row">
-                <div class="download-icon">
-                  <i class={fileIcon(file.type)}></i>
+            <div class="dl-item" data-aos={i + 1} data-search={searchData} style={`animation-delay:${Math.min(i * 0.04, 0.3)}s; --file-color:${color}`} key={file.key}>
+              <div class="dl-item-icon">
+                <i class={fileIcon(file.type)}></i>
+              </div>
+              <div class="dl-item-info">
+                <h3 class="dl-item-name">{name}</h3>
+                <div class="dl-item-meta">
+                  <span class="dl-item-size">{formatSize(file.size)}</span>
+                  {file.isExternal && <span class="dl-item-badge dl-badge-ext">{lang === 'zh' ? '外部' : 'External'}</span>}
+                  {file.storageType === 'local' && <span class="dl-item-badge dl-badge-local">{lang === 'zh' ? '本地' : 'Local'}</span>}
                 </div>
-                <div class="download-info">
-                  <h3 class="download-name">{name}</h3>
-                  <div class="download-meta">
-                    <span class="download-size">{formatSize(file.size)}</span>
-                    {file.isExternal && <span class="download-badge external">{lang === 'zh' ? '外部链接' : 'External'}</span>}
-                    {file.storageType === 'local' && <span class="download-badge local">{lang === 'zh' ? '本地存储' : 'Local'}</span>}
-                  </div>
-                </div>
-                <div class="download-actions">
-                  {isAdmin && (
-                    <button class="share-btn" data-filekey={file.key} data-filename={file.displayName || file.originalName || file.key} title={lang === 'zh' ? '分享' : 'Share'}>
-                      <i class="fa-solid fa-share-nodes"></i>
-                    </button>
-                  )}
-                  <a href={`/api/download/${file.key}`}
-                     class="download-btn"
-                     title={t('home', 'download', lang)}>
-                    <i class="fa-solid fa-download"></i>
-                    <span>{t('home', 'download', lang)}</span>
-                  </a>
-                </div>
+              </div>
+              <div class="dl-item-actions">
+                {isAdmin && (
+                  <button class="share-btn" data-filekey={file.key} data-filename={file.displayName || file.originalName || file.key} title={lang === 'zh' ? '分享' : 'Share'}>
+                    <i class="fa-solid fa-share-nodes"></i>
+                  </button>
+                )}
+                <a href={`/api/download/${file.key}`}
+                   class="dl-download-btn"
+                   title={t('home', 'download', lang)}>
+                  <i class="fa-solid fa-download"></i>
+                </a>
               </div>
             </div>
           )
@@ -142,7 +153,7 @@ export function downloadsPage(files: any[], lang: Lang = 'zh', isAdmin: boolean 
                 </select>
               </div>
               <div class="share-form-field">
-                <label><i class="fa-solid fa-download"></i> {lang === 'zh' ? '最大下载次数（0=不限）' : 'Max Downloads (0=unlimited)'}</label>
+                <label><i class="fa-solid fa-download"></i> {lang === 'zh' ? '最大下载次数（0=无限）' : 'Max Downloads (0=unlimited)'}</label>
                 <input type="number" id="shareMaxDownloads" min="0" value="0" />
               </div>
             </div>

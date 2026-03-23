@@ -1,4 +1,4 @@
-/** home.tsx — 首页：全新视觉设计 */
+/** home.tsx — 首页：超高级感视觉设计 */
 import type { Lang } from './i18n'
 import { t } from './i18n'
 import { pageLayout } from './layout'
@@ -44,6 +44,7 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
       <section class="hero" data-aos="1">
         <div class="hero-glow"></div>
         <div class="hero-glow-2"></div>
+        <div class="hero-grain"></div>
 
         {/* Compact time widget — top-right corner */}
         <div class="hero-time" id="heroTime">

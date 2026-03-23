@@ -390,7 +390,7 @@
     const prepTxt = lang === 'zh' ? '准备中...' : 'Preparing...';
     const readyTxt = lang === 'zh' ? '完成!' : 'Ready!';
 
-    document.querySelectorAll('.download-btn').forEach(btn => {
+    document.querySelectorAll('.dl-download-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const icon = btn.querySelector('i');
         const text = btn.querySelector('span');
@@ -421,13 +421,13 @@
 
     if (!input || !list) return;
 
-    const cards = Array.from(list.querySelectorAll('.download-card'));
+    const cards = Array.from(list.querySelectorAll('.dl-item'));
     const totalCount = cards.length;
 
     // Build search index
     const index = cards.map(card => {
       const raw = (card.getAttribute('data-search') || '').toLowerCase();
-      const name = (card.querySelector('.download-name')?.textContent || '').toLowerCase();
+      const name = (card.querySelector('.dl-item-name')?.textContent || '').toLowerCase();
       return { el: card, raw, name };
     });
 
