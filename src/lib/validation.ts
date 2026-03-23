@@ -26,7 +26,7 @@ export const WebsiteSchema = z.object({
   description: z.string().max(500).default(''),
   url: z.string().url().or(z.string().max(500)),
   tags: z.string().max(200).default(''),
-  color: z.string().max(20).default('#E8A838'),
+  color: z.string().max(20).default('#6366F1'),
   icon: z.string().max(50).default('fa-solid fa-globe'),
 })
 

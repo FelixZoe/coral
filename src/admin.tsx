@@ -111,7 +111,7 @@ function dashboardView({ profile, websites, repos, files, settings, lang: dataLa
           <div id="websitesList" class="adm-items">
             {websites.map((w: any) => (
               <div class="adm-item" data-id={w.id} key={w.id}>
-                <div class="adm-item-icon" style={`color: ${w.color || '#E8A838'}`}><i class={w.icon || 'fa-solid fa-globe'}></i></div>
+                <div class="adm-item-icon" style={`color: ${w.color || '#6366F1'}`}><i class={w.icon || 'fa-solid fa-globe'}></i></div>
                 <div class="adm-item-body"><strong>{w.title}</strong><span class="adm-item-sub">{w.description}</span></div>
                 <div class="adm-item-actions">
                   <button class="adm-btn-icon edit-website" title={t('admin', 'edit', lang)}><i class="fa-solid fa-pen"></i></button>

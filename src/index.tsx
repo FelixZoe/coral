@@ -27,7 +27,7 @@ app.onError((err, c) => {
   return c.html(`<!DOCTYPE html><html><body style="font-family:system-ui;padding:40px;text-align:center">
     <h1>500</h1><p>Something went wrong. Please try again later.</p>
     <p style="color:#999;font-size:0.8rem">Request ID: ${reqId}</p>
-    <a href="/" style="color:#E8A838">Go Home</a></body></html>`, 500)
+    <a href="/" style="color:#6366F1">Go Home</a></body></html>`, 500)
 })
 
 // ==================== Security Middleware ====================

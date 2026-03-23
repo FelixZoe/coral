@@ -1548,7 +1548,7 @@
           '#FFCA63', // level 2
           '#F0A830', // level 3
           '#D4851A', // level 4
-          '#B5640B', // level 5: deep (most visitors)
+          '#4338CA', // level 5: deep (most visitors)
         ];
         const darkHeatColors = [
           '#2A2418', // level 0
@@ -1556,7 +1556,7 @@
           '#5C4820', // level 2
           '#8B6B1F', // level 3
           '#C08E20', // level 4
-          '#F0B955', // level 5
+          '#818CF8', // level 5
         ];
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
           || document.body.closest('[data-theme="dark"]');
@@ -1599,7 +1599,7 @@
           const c = provCenter[name];
           if (!c) continue;
           const labelColor = isDark ? '#F0EDE8' : '#1A1A1A';
-          const numColor = isDark ? '#F0B955' : '#B5640B';
+          const numColor = isDark ? '#818CF8' : '#4338CA';
           labelsHtml += `<text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" `
             + `fill="${labelColor}" font-size="9" font-weight="600" opacity="0.9" style="text-shadow:0 0 3px ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)'}">${name}</text>`;
           labelsHtml += `<text x="${c[0]}" y="${c[1]+11}" text-anchor="middle" dominant-baseline="central" `

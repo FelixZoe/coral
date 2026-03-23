@@ -32,7 +32,7 @@ export function projectsPage(websites: any[], lang: Lang = 'zh') {
           <a href={site.url} target="_blank" rel="noopener" class="pj-card" style={`animation-delay:${Math.min(i * 0.06, 0.4)}s`} key={site.id}>
             <div class="pj-card-inner">
               <div class="pj-card-head">
-                <div class="pj-icon" style={`--pj-accent: ${site.color || '#E8A838'}`}>
+                <div class="pj-icon" style={`--pj-accent: ${site.color || '#6366F1'}`}>
                   <i class={site.icon || 'fa-solid fa-globe'}></i>
                 </div>
                 <div class="pj-title-wrap">

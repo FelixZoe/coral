@@ -26,7 +26,7 @@ function fileIcon(type: string): string {
 }
 
 function fileColor(type: string): string {
-  if (!type) return '#E8A838'
+  if (!type) return '#6366F1'
   if (type.startsWith('image/')) return '#7C5CFC'
   if (type.startsWith('video/')) return '#EF4444'
   if (type.startsWith('audio/')) return '#22C55E'
@@ -34,7 +34,7 @@ function fileColor(type: string): string {
   if (type.includes('zip') || type.includes('rar') || type.includes('tar')) return '#F59E0B'
   if (type.includes('word') || type.includes('document')) return '#3B82F6'
   if (type.includes('sheet') || type.includes('excel')) return '#22C55E'
-  return '#E8A838'
+  return '#6366F1'
 }
 
 export function downloadsPage(files: any[], lang: Lang = 'zh', isAdmin: boolean = false) {
