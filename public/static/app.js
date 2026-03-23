@@ -1590,7 +1590,6 @@
         }
 
         mapEl.innerHTML = `<svg viewBox="0 0 516 505" xmlns="http://www.w3.org/2000/svg" class="china-map-svg">
-          <defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
           ${pathsHtml}${labelsHtml}</svg>`;
 
         // Hover tooltips (desktop) + touch tooltips (mobile)
@@ -1599,6 +1598,7 @@
           if (!tip) { tip = document.createElement('div'); tip.className = 'map-tooltip'; mapEl.appendChild(tip); }
           return tip;
         }
+        let activeProv = null;
         mapEl.querySelectorAll('.china-prov').forEach(el => {
           // Desktop hover
           el.addEventListener('mouseenter', e => {
@@ -1616,20 +1616,40 @@
             if (tip) tip.style.display = 'none';
             if (el._mh) mapEl.removeEventListener('mousemove', el._mh);
           });
-          // Mobile tap
+          // Mobile tap — use class toggle to avoid repaint flash
           el.addEventListener('click', e => {
+            e.preventDefault();
             e.stopPropagation();
+            // Remove active from previous
+            if (activeProv && activeProv !== el) activeProv.classList.remove('prov-active');
+            el.classList.toggle('prov-active');
+            activeProv = el.classList.contains('prov-active') ? el : null;
             const nm = el.getAttribute('data-prov');
             const cnt = provinces[nm] || 0;
             const tip = getOrCreateTooltip();
             tip.textContent = `${nm}: ${cnt} \u8bbf\u5ba2`;
-            tip.style.display = 'block';
-            const rect = mapEl.getBoundingClientRect();
-            const touch = e.changedTouches ? e.changedTouches[0] : e;
-            tip.style.left = Math.min(Math.max(0, touch.clientX - rect.left - 30), rect.width - 80) + 'px';
-            tip.style.top = Math.max(0, touch.clientY - rect.top - 32) + 'px';
+            if (activeProv) {
+              tip.style.display = 'block';
+              // Position tooltip near center of province bounding box
+              const bbox = el.getBBox ? el.getBBox() : null;
+              const svgEl = mapEl.querySelector('svg');
+              if (bbox && svgEl) {
+                const svgRect = svgEl.getBoundingClientRect();
+                const viewBox = svgEl.viewBox.baseVal;
+                const scaleX = svgRect.width / viewBox.width;
+                const scaleY = svgRect.height / viewBox.height;
+                const cx = bbox.x + bbox.width / 2;
+                const cy = bbox.y;
+                tip.style.left = Math.min(Math.max(8, cx * scaleX - 30), svgRect.width - 80) + 'px';
+                tip.style.top = Math.max(4, cy * scaleY - 28) + 'px';
+              }
+            } else {
+              tip.style.display = 'none';
+            }
             clearTimeout(mapEl._tipTimer);
-            mapEl._tipTimer = setTimeout(() => { tip.style.display = 'none'; }, 2000);
+            if (activeProv) {
+              mapEl._tipTimer = setTimeout(() => { tip.style.display = 'none'; el.classList.remove('prov-active'); activeProv = null; }, 2500);
+            }
           });
         });
         // Hide tooltip on map background tap
@@ -1637,6 +1657,7 @@
           if (e.target === mapEl || e.target.tagName === 'svg') {
             const tip = mapEl.querySelector('.map-tooltip');
             if (tip) tip.style.display = 'none';
+            if (activeProv) { activeProv.classList.remove('prov-active'); activeProv = null; }
           }
         });
       }

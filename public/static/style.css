@@ -8,6 +8,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent pinch-zoom and double-tap zoom on mobile */
+html {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+}
+
 /* Mobile: kill 300ms tap delay */
 a, button, [role="button"], .nav-link, .filter-tag, .trending-tab,
 .mobile-menu-btn, .header-icon-btn, .lang-toggle, .theme-toggle {
@@ -4212,6 +4218,9 @@ a { text-decoration: none; color: inherit; }
   background: color-mix(in srgb, var(--hover-bg) 40%, transparent);
   overflow: hidden;
   cursor: crosshair;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .sw-visitors-map svg {
@@ -4221,13 +4230,19 @@ a { text-decoration: none; color: inherit; }
 
 .china-prov {
   cursor: pointer;
-  transition: fill-opacity 0.25s ease, stroke-width 0.2s ease, stroke 0.2s ease;
+  transition: fill-opacity 0.2s ease, stroke-width 0.15s ease, stroke 0.15s ease;
+  will-change: fill-opacity, stroke-width;
+  -webkit-tap-highlight-color: transparent;
 }
 .china-prov:hover {
-  fill-opacity: 0.7 !important;
-  stroke-width: 1.5 !important;
+  fill-opacity: 0.75 !important;
+  stroke-width: 1.4 !important;
   stroke: var(--accent) !important;
-  filter: url(#glow);
+}
+.china-prov.prov-active {
+  fill-opacity: 0.75 !important;
+  stroke-width: 1.4 !important;
+  stroke: var(--accent) !important;
 }
 
 .prov-label {
@@ -4239,6 +4254,7 @@ a { text-decoration: none; color: inherit; }
   position: absolute;
   background: color-mix(in srgb, var(--bg-card) 92%, transparent);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 3px 8px;
@@ -4249,6 +4265,8 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap;
   z-index: 10;
   box-shadow: var(--shadow-sm);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .sw-panel-map {
