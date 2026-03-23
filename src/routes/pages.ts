@@ -28,9 +28,9 @@ pages.get('/', async (c) => {
     title: `${profile.name} — ${profile.tagline || 'Portal'}`,
     lang,
     description: lang === 'zh'
-      ? `${profile.name} 的个人门户 — ${profile.tagline}。${profile.bio}`
-      : `${profile.name}'s Portal — ${profile.tagline}. Projects, GitHub repos, downloads and more.`,
-    keywords: `${profile.name},个人网站,开发者,项目展示,GitHub,portfolio,developer`,
+      ? `${profile.name} 的全栈开发门户 — GitHub项目展示、软件库、开源项目精选、GitHub排行榜`
+      : `${profile.name}'s Developer Portal — GitHub projects, software library, open source picks`,
+    keywords: `${profile.name},GitHub,GitHub排行榜,全栈开发,软件库,文件库,好的项目,开源项目,developer,portfolio`,
     canonical: '/',
   })
 })
@@ -52,9 +52,9 @@ pages.get('/projects', async (c) => {
     title: `${t('home', 'webProjects', lang)} — ${profile.name}`,
     lang,
     description: lang === 'zh'
-      ? `${profile.name} 的网站项目展示 — 查看 ${sorted.length} 个精选网站项目`
-      : `${profile.name}'s web projects — Explore ${sorted.length} curated websites`,
-    keywords: `${profile.name},项目,网站,web projects,portfolio`,
+      ? `精选好的项目 — ${sorted.length} 个优质网站项目展示，全栈开发作品集`
+      : `Best Projects — ${sorted.length} curated web projects by a full-stack developer`,
+    keywords: `好的项目,项目展示,全栈开发,网站项目,web projects,portfolio,${profile.name}`,
     canonical: '/projects',
   })
 })
@@ -70,9 +70,9 @@ pages.get('/github', async (c) => {
     title: `${t('home', 'githubProjects', lang)} — ${profile.name}`,
     lang,
     description: lang === 'zh'
-      ? `${profile.name} 的 GitHub 开源项目 — ${repos.length} 个仓库`
-      : `${profile.name}'s GitHub repos — ${repos.length} repositories`,
-    keywords: `${profile.name},GitHub,开源,仓库,open source,repositories`,
+      ? `GitHub开源项目展示 — ${repos.length} 个优质仓库，发现好的开源项目`
+      : `GitHub Open Source — ${repos.length} quality repositories, discover great projects`,
+    keywords: `GitHub,开源项目,好的项目,GitHub仓库,全栈开发,open source,repositories,${profile.name}`,
     canonical: '/github',
   })
 })
@@ -95,9 +95,9 @@ pages.get('/downloads', async (c) => {
     title: `${t('home', 'downloadsTitle', lang)} — ${profile.name}`,
     lang,
     description: lang === 'zh'
-      ? `${profile.name} 的文件下载中心 — ${sorted.length} 个可下载文件`
-      : `${profile.name}'s downloads — ${sorted.length} files available`,
-    keywords: `${profile.name},下载,文件,downloads,files`,
+      ? `软件库文件下载中心 — ${sorted.length} 个免费资源，工具软件、开发资源下载`
+      : `Software Library — ${sorted.length} free resources, tools and development files`,
+    keywords: `软件库,文件库,免费下载,工具软件,开发资源,software download,${profile.name}`,
     canonical: '/downloads',
   })
 })
@@ -123,10 +123,10 @@ pages.get('/sitemap.xml', async (c) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${siteUrl}/</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>${siteUrl}/projects</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>${siteUrl}/github</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>${siteUrl}/downloads</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>${siteUrl}/trending</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+  <url><loc>${siteUrl}/projects</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>${siteUrl}/github</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>${siteUrl}/downloads</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>${siteUrl}/trending</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
 </urlset>`
   return new Response(xml, {
     headers: { 'Content-Type': 'application/xml; charset=UTF-8', 'Cache-Control': 'public, max-age=3600' },

@@ -290,14 +290,14 @@ trending.get('/trending', async (c) => {
     }
   }
 
-  const title = lang === 'zh' ? 'GitHub 排行榜 — Portal' : 'GitHub Trending — Portal'
+  const title = lang === 'zh' ? 'GitHub排行榜 — 实时热门开源项目榜单' : 'GitHub Trending — Real-time Hot Open Source Rankings'
   return c.render(trendingPage(hotRepos, risingRepos, lang, tab, langFilter, cacheAge, apiStatus, rateLimitInfo), {
     title,
     lang,
     description: lang === 'zh'
-      ? 'GitHub 全站热门仓库排行榜 — 实时更新最受欢迎的开源项目'
-      : 'GitHub Trending Repositories — Real-time ranking of popular open source projects',
-    keywords: 'GitHub,trending,排行榜,热门仓库,开源项目,open source',
+      ? 'GitHub排行榜 — 实时更新最热门的开源项目，发现GitHub上好的项目，全球开发者精选'
+      : 'GitHub Trending — Real-time ranking of popular open source projects, discover the best repos',
+    keywords: 'GitHub排行榜,GitHub trending,热门开源项目,好的项目,GitHub热门,全栈开发,open source ranking',
     canonical: '/trending',
   })
 })

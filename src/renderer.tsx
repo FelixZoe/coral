@@ -4,8 +4,8 @@ export const renderer = jsxRenderer(({ children, title, lang, isAdmin, descripti
   const htmlLang = lang === 'en' ? 'en' : 'zh-CN'
   const siteUrl = 'https://likeok.online'
   const pageTitle = title || 'My Portal'
-  const pageDesc = description || '个人门户网站 — 项目展示、GitHub 仓库、文件分享、技术博客'
-  const pageKeywords = keywords || '个人网站,开发者,项目展示,GitHub,文件分享,技术博客,portfolio'
+  const pageDesc = description || '全栈开发者门户 — GitHub项目展示、GitHub排行榜、软件库、文件下载、开源项目精选'
+  const pageKeywords = keywords || 'GitHub,GitHub排行榜,全栈开发,软件库,文件库,开源项目,好的项目,项目展示,developer,portfolio'
   const pageCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
   const pageOgImage = ogImage || `${siteUrl}/static/avatar.svg`
   return (
@@ -29,7 +29,7 @@ export const renderer = jsxRenderer(({ children, title, lang, isAdmin, descripti
         <meta property="og:description" content={pageDesc} />
         <meta property="og:url" content={pageCanonical} />
         <meta property="og:image" content={pageOgImage} />
-        <meta property="og:site_name" content="Alex Chen Portal" />
+        <meta property="og:site_name" content="LikeOK — 全栈开发者门户" />
         <meta property="og:locale" content={htmlLang === 'zh-CN' ? 'zh_CN' : 'en_US'} />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary" />
@@ -49,10 +49,11 @@ export const renderer = jsxRenderer(({ children, title, lang, isAdmin, descripti
         {!isAdmin && <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({
           '@context': 'https://schema.org',
           '@type': 'Person',
-          'name': 'Alex Chen',
+          'name': 'LikeOK',
           'url': siteUrl,
           'sameAs': ['https://github.com/miko2045'],
-          'jobTitle': 'Developer',
+          'jobTitle': '全栈开发者',
+          'knowsAbout': ['GitHub', '全栈开发', '开源项目', '软件开发'],
           'description': pageDesc,
         })}} />}
       </head>
