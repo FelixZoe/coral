@@ -847,7 +847,7 @@
 
 .adm-token-status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -857,6 +857,12 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-token-card-top {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1047,4 +1053,109 @@
 .adm-token-input::placeholder {
   color: var(--text-tertiary);
   font-family: var(--font);
+}
+
+/* === Rate Limit Bars === */
+.adm-rl-total {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+}
+
+.adm-rl-total-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-rl-total-title i {
+  color: var(--accent);
+}
+
+.adm-rl-total-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .adm-rl-total-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-rl-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adm-rl-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adm-rl-bar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.adm-rl-bar-nums {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-rl-bar-nums small {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.adm-rl-bar-track {
+  height: 8px;
+  background: color-mix(in srgb, var(--text-tertiary) 15%, transparent);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.adm-rl-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 2px;
+}
+
+.adm-rl-bar-footer {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
+/* Per-token rate limit detail */
+.adm-token-rl-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.adm-token-rl-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }

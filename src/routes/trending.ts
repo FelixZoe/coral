@@ -317,6 +317,57 @@ trending.get('/admin/api/github-tokens', async (c) => {
   return c.json(info)
 })
 
+// Real-time rate limit check for each token via GitHub API
+trending.get('/admin/api/github-tokens/rate-limit', async (c) => {
+  const tc = buildTokenConfig(c.env)
+  const pool = await getTokenPool(c.env.KV, tc?.envTokens, tc)
+  if (pool.tokens.length === 0) return c.json({ tokens: [], total: { limit: 0, remaining: 0, used: 0, percent: 0 } })
+
+  const results = await Promise.all(pool.tokens.map(async (token, idx) => {
+    try {
+      const resp = await fetch('https://api.github.com/rate_limit', {
+        headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'portal-trending-app', 'Authorization': `token ${token}` },
+      })
+      if (!resp.ok) {
+        return { index: idx, masked: token.slice(0, 8) + '***' + token.slice(-4), error: `HTTP ${resp.status}`, core: null, search: null }
+      }
+      const data = await resp.json() as { resources: { core: { limit: number; remaining: number; used: number; reset: number }; search: { limit: number; remaining: number; used: number; reset: number } } }
+      const core = data.resources.core
+      const search = data.resources.search
+      return {
+        index: idx,
+        masked: token.slice(0, 8) + '***' + token.slice(-4),
+        error: null,
+        core: { limit: core.limit, remaining: core.remaining, used: core.used, percent: core.limit > 0 ? Math.round((core.remaining / core.limit) * 100) : 0, resetAt: new Date(core.reset * 1000).toISOString() },
+        search: { limit: search.limit, remaining: search.remaining, used: search.used, percent: search.limit > 0 ? Math.round((search.remaining / search.limit) * 100) : 0, resetAt: new Date(search.reset * 1000).toISOString() },
+      }
+    } catch (e) {
+      return { index: idx, masked: token.slice(0, 8) + '***' + token.slice(-4), error: 'Network error', core: null, search: null }
+    }
+  }))
+
+  // Aggregate totals
+  const validTokens = results.filter(r => r.core && r.search)
+  const total = {
+    core: {
+      limit: validTokens.reduce((s, r) => s + (r.core?.limit || 0), 0),
+      remaining: validTokens.reduce((s, r) => s + (r.core?.remaining || 0), 0),
+      used: validTokens.reduce((s, r) => s + (r.core?.used || 0), 0),
+      percent: 0 as number,
+    },
+    search: {
+      limit: validTokens.reduce((s, r) => s + (r.search?.limit || 0), 0),
+      remaining: validTokens.reduce((s, r) => s + (r.search?.remaining || 0), 0),
+      used: validTokens.reduce((s, r) => s + (r.search?.used || 0), 0),
+      percent: 0 as number,
+    },
+  }
+  total.core.percent = total.core.limit > 0 ? Math.round((total.core.remaining / total.core.limit) * 100) : 0
+  total.search.percent = total.search.limit > 0 ? Math.round((total.search.remaining / total.search.limit) * 100) : 0
+
+  return c.json({ tokens: results, total })
+})
+
 trending.post('/admin/api/github-tokens', async (c) => {
   const data = await c.req.json()
   const result = data as { tokens: string[] }

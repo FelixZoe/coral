@@ -564,15 +564,42 @@
 
   let tokenList = []; // Current tokens in the editor
 
+  function rateLimitColor(percent) {
+    if (percent >= 70) return '#22C55E';
+    if (percent >= 30) return '#F59E0B';
+    return '#EF4444';
+  }
+
+  function rateLimitBar(label, remaining, limit, percent, resetAt) {
+    const color = rateLimitColor(percent);
+    const resetTime = resetAt ? new Date(resetAt).toLocaleTimeString() : '--';
+    return `
+      <div class="adm-rl-bar-wrap">
+        <div class="adm-rl-bar-header">
+          <span class="adm-rl-bar-label">${label}</span>
+          <span class="adm-rl-bar-nums" style="color:${color}">${remaining}/${limit} <small>(${percent}%)</small></span>
+        </div>
+        <div class="adm-rl-bar-track">
+          <div class="adm-rl-bar-fill" style="width:${percent}%;background:${color}"></div>
+        </div>
+        <div class="adm-rl-bar-footer">${lang === 'zh' ? '重置' : 'Reset'}: ${resetTime}</div>
+      </div>`;
+  }
+
   // Load token status on panel show
   async function loadTokenStatus() {
     const container = document.getElementById('tokenStatusContent');
     if (!container) return;
 
     try {
-      const resp = await fetch('/admin/api/github-tokens');
-      if (!resp.ok) throw new Error('Failed to load');
-      const data = await resp.json();
+      // Fetch both pool status and real-time rate limits in parallel
+      const [statusResp, rlResp] = await Promise.all([
+        fetch('/admin/api/github-tokens'),
+        fetch('/admin/api/github-tokens/rate-limit'),
+      ]);
+      if (!statusResp.ok) throw new Error('Failed to load');
+      const data = await statusResp.json();
+      const rlData = rlResp.ok ? await rlResp.json() : null;
 
       if (data.totalTokens === 0) {
         container.innerHTML = `
@@ -580,41 +607,69 @@
             <i class="fa-solid fa-info-circle"></i>
             ${tokenI.noTokens}
           </div>`;
-        // Init empty token list
         tokenList = [];
         renderTokenList();
         return;
       }
 
-      // Summary + grid
+      // === Total summary with real rate limit ===
       let html = `
         <div class="adm-token-summary">
           <span><span class="summary-num">${data.totalTokens}</span> ${tokenI.tokenCount}</span>
           <span style="color:#22C55E;font-weight:600">${data.activeTokens} ${tokenI.activeTokens}</span>
           <span style="color:#F59E0B;font-weight:600">${data.totalTokens - data.activeTokens} ${tokenI.cooldown}</span>
-        </div>
-        <div class="adm-token-status-grid">`;
+        </div>`;
+
+      // === Aggregate rate limit bars ===
+      if (rlData && rlData.total) {
+        html += `
+        <div class="adm-rl-total">
+          <h4 class="adm-rl-total-title"><i class="fa-solid fa-chart-pie"></i> ${lang === 'zh' ? '总配额概览' : 'Total Quota Overview'}</h4>
+          <div class="adm-rl-total-grid">
+            ${rateLimitBar(lang === 'zh' ? 'Core API' : 'Core API', rlData.total.core.remaining, rlData.total.core.limit, rlData.total.core.percent, null)}
+            ${rateLimitBar(lang === 'zh' ? 'Search API (排行榜)' : 'Search API (Trending)', rlData.total.search.remaining, rlData.total.search.limit, rlData.total.search.percent, null)}
+          </div>
+        </div>`;
+      }
+
+      // === Per-token cards with rate limit ===
+      html += `<div class="adm-token-status-grid">`;
 
       data.tokens.forEach((t, idx) => {
         const stateClass = t.active ? 'active' : 'cooldown';
-        const stateText = t.active ? tokenI.active : `${tokenI.cooldown}`;
+        const stateText = t.active ? tokenI.active : tokenI.cooldown;
         const cdText = t.cooldownUntil ? `<br><small>${tokenI.cooldownUntil} ${new Date(t.cooldownUntil).toLocaleTimeString()}</small>` : '';
+
+        // Find matching rate limit data
+        const rl = rlData && rlData.tokens ? rlData.tokens[idx] : null;
+
         html += `
           <div class="adm-token-status-card">
-            <span class="token-index">${idx + 1}</span>
-            <div class="token-info">
-              <div class="token-masked">${t.masked}</div>
-              <div class="token-state ${stateClass}">${stateText}${cdText}</div>
-            </div>
-            <span class="adm-token-status-dot ${stateClass}"></span>
-          </div>`;
+            <div class="adm-token-card-top">
+              <span class="token-index">${idx + 1}</span>
+              <div class="token-info">
+                <div class="token-masked">${t.masked}</div>
+                <div class="token-state ${stateClass}">${stateText}${cdText}</div>
+              </div>
+              <span class="adm-token-status-dot ${stateClass}"></span>
+            </div>`;
+
+        if (rl && !rl.error && rl.core && rl.search) {
+          html += `
+            <div class="adm-token-rl-detail">
+              ${rateLimitBar('Core', rl.core.remaining, rl.core.limit, rl.core.percent, rl.core.resetAt)}
+              ${rateLimitBar('Search', rl.search.remaining, rl.search.limit, rl.search.percent, rl.search.resetAt)}
+            </div>`;
+        } else if (rl && rl.error) {
+          html += `<div class="adm-token-rl-error"><i class="fa-solid fa-triangle-exclamation"></i> ${rl.error}</div>`;
+        }
+
+        html += `</div>`;
       });
 
       html += '</div>';
       container.innerHTML = html;
 
-      // Populate token list for editing (only masked values; we need full values)
-      // We load full tokens from the token list API
       tokenList = data.tokens.map(t => t.masked);
 
     } catch (e) {
