@@ -64,6 +64,13 @@ export function downloadsPage(files: any[], lang: Lang = 'zh', isAdmin: boolean 
         </span>
       </div>
 
+      {/* SEO description */}
+      <p class="page-seo-desc">
+        {lang === 'zh'
+          ? '软件库与文件库下载中心 — 提供开发工具、编程资源、实用软件等免费资源下载。所有文件经过安全检查，支持高速下载，定期更新优质资源。'
+          : 'Software & file download center — free dev tools, programming resources, and utilities. All files verified and regularly updated.'}
+      </p>
+
       {/* Search bar */}
       {sorted.length > 0 && (
         <div class="dl-search-wrap">

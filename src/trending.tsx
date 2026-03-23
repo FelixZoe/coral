@@ -179,6 +179,13 @@ export function trendingPage(
         <span class="page-header-count">{t('trending', 'subtitle', lang)}</span>
       </div>
 
+      {/* SEO description */}
+      <p class="page-seo-desc">
+        {lang === 'zh'
+          ? 'GitHub 排行榜实时追踪今日最热门的开源项目，涵盖 Python、JavaScript、TypeScript、Go、Rust 等主流编程语言。每日更新 GitHub Star 排名，帮你快速发现全球开发者最关注的优质项目和代码仓库。'
+          : 'GitHub Trending tracks today\'s hottest open source projects across Python, JavaScript, TypeScript, Go, Rust and more. Daily updated star rankings to help you discover the best repositories worldwide.'}
+      </p>
+
       {/* ── Control Bar: status + refresh ── */}
       <div class="trd-controls">
         <div class="trd-controls-left">
@@ -249,6 +256,11 @@ export function trendingPage(
       {/* ── Footer ── */}
       <div class="trd-footer">
         <p>{t('trending', 'poweredBy', lang)}</p>
+        <p class="trd-seo-footer">
+          {lang === 'zh'
+            ? 'GitHub 排行榜 · GitHub 热门项目 · GitHub Trending · 开源项目排行 · 程序员必备导航'
+            : 'GitHub Rankings · GitHub Trending · Open Source Charts · Developer Navigation'}
+        </p>
       </div>
     </main>
   )

@@ -35,6 +35,13 @@ export function githubPage(repos: any[], lang: Lang = 'zh') {
         </span>
       </div>
 
+      {/* SEO description */}
+      <p class="page-seo-desc">
+        {lang === 'zh'
+          ? `精选 ${repos.length} 个 GitHub 开源项目推荐 — 涵盖全栈开发、前端框架、后端服务、开发工具等方向。每个项目都经过精心筛选，是值得 Star 和学习的好项目。`
+          : `${repos.length} curated GitHub open source projects — covering full-stack dev, frameworks, backend, and tooling. Every repo is hand-picked and worth starring.`}
+      </p>
+
       {/* Overview stats strip */}
       {repos.length > 0 && (
         <div class="gh-overview">

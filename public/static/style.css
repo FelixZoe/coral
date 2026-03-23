@@ -4788,3 +4788,87 @@ html {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-tertiary) 30%, transparent) transparent;
 }
+
+/* ======================================
+   SEO Content Sections
+   ====================================== */
+
+/* Page SEO description — shown below page headers */
+.page-seo-desc {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 720px;
+  margin: -0.5rem auto 1.5rem;
+  padding: 0 1rem;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* Home page SEO section */
+.home-seo {
+  margin: 2rem auto 0;
+  max-width: 800px;
+  padding: 0 1rem;
+}
+.seo-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  opacity: 0.85;
+}
+.seo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+.seo-item {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 1.2rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.seo-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px var(--shadow);
+}
+.seo-icon {
+  font-size: 1.2rem;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.seo-item h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+.seo-item p {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Trending SEO footer */
+.trd-seo-footer {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 0.3rem;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .seo-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-seo-desc {
+    font-size: 0.8rem;
+    padding: 0 0.5rem;
+  }
+}

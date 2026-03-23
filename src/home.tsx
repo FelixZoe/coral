@@ -133,6 +133,41 @@ export function homePage(profile: any, websites: any[], repos: any[], files: any
         </a>
       </div>
 
+      {/* ===== SEO CONTENT SECTION ===== */}
+      <section class="home-seo" data-aos="5">
+        <h2 class="seo-heading">{lang === 'zh' ? '全栈开发者的数字空间' : 'A Full-Stack Developer\'s Digital Space'}</h2>
+        <div class="seo-grid">
+          <div class="seo-item">
+            <i class="fa-solid fa-fire-flame-curved seo-icon"></i>
+            <h3>{lang === 'zh' ? 'GitHub 排行榜' : 'GitHub Trending'}</h3>
+            <p>{lang === 'zh'
+              ? '实时追踪 GitHub 热门项目排行榜，每日更新今日最受欢迎的开源项目，帮你发现值得 Star 的优质仓库。'
+              : 'Real-time GitHub trending rankings, daily updated hot open source projects.'}</p>
+          </div>
+          <div class="seo-item">
+            <i class="fa-solid fa-cube seo-icon"></i>
+            <h3>{lang === 'zh' ? '好的项目推荐' : 'Best Project Picks'}</h3>
+            <p>{lang === 'zh'
+              ? '精选优质开源项目与网站推荐，全栈开发者亲自筛选，每个项目都值得收藏和学习。'
+              : 'Curated quality projects and websites, hand-picked by a full-stack developer.'}</p>
+          </div>
+          <div class="seo-item">
+            <i class="fa-solid fa-cloud-arrow-down seo-icon"></i>
+            <h3>{lang === 'zh' ? '软件库 & 文件库' : 'Software & File Library'}</h3>
+            <p>{lang === 'zh'
+              ? '免费软件资源下载中心，提供开发工具、编程资源、实用软件等文件的免费下载。'
+              : 'Free software downloads, dev tools, programming resources and utilities.'}</p>
+          </div>
+          <div class="seo-item">
+            <i class="fa-brands fa-github seo-icon"></i>
+            <h3>{lang === 'zh' ? '开源项目展示' : 'Open Source Showcase'}</h3>
+            <p>{lang === 'zh'
+              ? '全栈开发者的 GitHub 开源项目作品集，涵盖前端、后端、工具链等方向。'
+              : 'Full-stack developer GitHub portfolio, covering frontend, backend, and tooling.'}</p>
+          </div>
+        </div>
+      </section>
+
       {/* ===== QUOTE ===== */}
       <section class="home-quote" data-aos="5">
         <i class="fa-solid fa-quote-left home-quote-mark"></i>

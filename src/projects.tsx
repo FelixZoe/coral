@@ -26,6 +26,13 @@ export function projectsPage(websites: any[], lang: Lang = 'zh') {
         </span>
       </div>
 
+      {/* SEO description */}
+      <p class="page-seo-desc">
+        {lang === 'zh'
+          ? `精选好的项目推荐 — ${sorted.length} 个优质网站与 Web 应用展示，全栈开发者作品集。涵盖前端开发、后端服务、全栈项目等方向，每个项目都值得学习和参考。`
+          : `Best project picks — ${sorted.length} quality websites and web apps, a full-stack developer portfolio. Covering frontend, backend, and full-stack projects.`}
+      </p>
+
       {sorted.length === 0 && (
         <div class="page-empty">
           <div class="page-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
