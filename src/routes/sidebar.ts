@@ -2,6 +2,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { kvGet, kvPut } from '../lib/kv'
+import { checkText } from '../lib/wordfilter'
 
 const sidebar = new Hono<AppEnv>()
 
@@ -113,6 +114,12 @@ sidebar.post('/api/sidebar/guestbook', async (c) => {
   const cleanText = text.trim().replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').slice(0, 60)
   if (cleanText.length === 0) {
     return c.json({ error: 'Message cannot be empty after sanitization' }, 400)
+  }
+
+  // Blocked word filter — reject messages containing sensitive / abusive content
+  const filterResult = checkText(cleanText)
+  if (filterResult.blocked) {
+    return c.json({ error: '消息包含不当内容，请修改后重试 / Message contains inappropriate content' }, 400)
   }
   // Validate emoji (must be actual emoji, max 2 chars)
   const safeEmoji = (emoji && typeof emoji === 'string') ? emoji.slice(0, 2) : '😊'
