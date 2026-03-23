@@ -70,6 +70,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* Reduce motion — accessibility */
@@ -98,6 +99,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
   /* No transition on body — theme switch uses fast overlay instead.
      This prevents costly full-page repaint on every CSS var change. */
 }
@@ -2890,12 +2892,7 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
-
-.trd-filter-tags::-webkit-scrollbar { display: none; }
 
 .filter-tag {
   padding: 5px 14px;
@@ -3300,9 +3297,7 @@ a { text-decoration: none; color: inherit; }
   }
 
   .trd-filter-tags {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    flex-wrap: wrap;
   }
 
   .trd-card {
