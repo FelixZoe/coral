@@ -144,12 +144,18 @@ app.use('*', async (c, next) => {
   const path = c.req.path
   if (path.startsWith('/api/') || path.startsWith('/admin') || path.startsWith('/static/')) return next()
 
+  // Allow legitimate search engine bots
+  const allowedBots = ['googlebot', 'bingbot', 'baiduspider', 'yandexbot', 'slurp', 'duckduckbot', 'sogou']
+  if (allowedBots.some(b => ua.includes(b))) {
+    return next()
+  }
+
   // Block known scraping tools and bad bots
   const botPatterns = [
     'scrapy', 'python-requests', 'go-http-client', 'libwww-perl',
     'httpclient/', 'java/', 'ahrefsbot',
     'semrushbot', 'dotbot', 'mj12bot', 'bytespider',
-    'petalbot', 'yandexbot/3', 'sogou', 'baiduspider',
+    'petalbot',
   ]
   if (botPatterns.some(p => ua.includes(p))) {
     return c.text('Access Denied', 403)
