@@ -128,7 +128,8 @@ a { text-decoration: none; color: inherit; }
   border-radius: 50%;
   filter: blur(80px);
   opacity: 0.5;
-  animation: blobFloat 20s ease-in-out infinite;
+  /* Static — no animation. Moving blurred elements kills scroll perf */
+  will-change: auto;
 }
 
 .blob-1 {
@@ -152,11 +153,7 @@ a { text-decoration: none; color: inherit; }
   animation-delay: -14s;
 }
 
-@keyframes blobFloat {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
-}
+/* blobFloat animation removed — filter:blur(80px) + infinite animation = jank */
 
 .grain {
   position: fixed;
@@ -201,9 +198,7 @@ a { text-decoration: none; color: inherit; }
   content: '';
   position: absolute;
   inset: -1px 0 0;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
   z-index: -1;
   margin: 0 -28px;
   padding: 0 28px;
@@ -213,7 +208,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .header.scrolled::before {
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
   border-bottom-color: var(--border);
   box-shadow: 0 2px 16px rgba(0,0,0,0.04);
 }
@@ -275,13 +270,11 @@ a { text-decoration: none; color: inherit; }
 .header-nav {
   display: flex;
   gap: 2px;
-  background: color-mix(in srgb, var(--bg-card) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
   border: 1px solid var(--border);
   border-radius: 99px;
   padding: 3px;
   position: relative;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .nav-link {
@@ -363,7 +356,7 @@ a { text-decoration: none; color: inherit; }
   width: 34px; height: 34px;
   border: 1px solid var(--border);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
   color: var(--text-tertiary);
   display: flex;
   align-items: center;
@@ -372,8 +365,6 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
   transition: all var(--transition);
   text-decoration: none;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   position: relative;
   overflow: hidden;
 }
@@ -485,9 +476,8 @@ a { text-decoration: none; color: inherit; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
-  will-change: transform;
 }
 
 .card:hover {
@@ -860,18 +850,14 @@ a { text-decoration: none; color: inherit; }
   border-radius: 50%;
   filter: blur(60px);
   opacity: 0.35;
-  animation: sideOrbFloat 18s ease-in-out infinite;
+  /* Static — no animation for perf */
 }
 .side-orb-1 { width: 120px; height: 120px; background: var(--accent); top: 20%; left: 40px; }
 .side-orb-2 { width: 80px; height: 80px; background: #7C5CFC; top: 55%; right: 30px; animation-delay: -8s; }
 .side-orb-3 { width: 100px; height: 100px; background: #22C55E; bottom: 25%; left: 50px; animation-delay: -4s; }
 .side-orb-4 { width: 90px; height: 90px; background: #EF4444; top: 35%; right: 40px; animation-delay: -12s; }
 
-@keyframes sideOrbFloat {
-  0%, 100% { transform: translateY(0) scale(1); }
-  33% { transform: translateY(-20px) scale(1.1); }
-  66% { transform: translateY(15px) scale(0.92); }
-}
+/* sideOrbFloat animation removed for scroll perf */
 
 .side-line {
   position: absolute;
@@ -942,7 +928,7 @@ a { text-decoration: none; color: inherit; }
   background: radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
   border-radius: 50%;
   pointer-events: none;
-  animation: heroGlowPulse 8s ease-in-out infinite;
+  opacity: 0.6;
 }
 .hero-glow-2 {
   position: absolute;
@@ -951,13 +937,10 @@ a { text-decoration: none; color: inherit; }
   background: radial-gradient(circle, color-mix(in srgb, #7C5CFC 8%, transparent), transparent 70%);
   border-radius: 50%;
   pointer-events: none;
-  animation: heroGlowPulse 10s ease-in-out infinite reverse;
+  opacity: 0.5;
 }
 
-@keyframes heroGlowPulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.08); }
-}
+/* heroGlowPulse removed for perf */
 
 [data-theme="dark"] .hero-glow,
 [data-theme="dark"] .hero-glow-2 { opacity: 0.2; }
@@ -2211,15 +2194,14 @@ a { text-decoration: none; color: inherit; }
   color: inherit;
   overflow: hidden;
   position: relative;
-  transition: border-color 0.3s ease, box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   animation: cardSlideIn 0.5s ease forwards;
   opacity: 0;
-  will-change: transform;
 }
 
 .pj-card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-hover);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
 }
 
@@ -2412,10 +2394,9 @@ a { text-decoration: none; color: inherit; }
   color: inherit;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   animation: cardSlideIn 0.5s ease forwards;
   opacity: 0;
-  will-change: transform;
 }
 
 @keyframes cardSlideIn {
@@ -2425,13 +2406,12 @@ a { text-decoration: none; color: inherit; }
 
 .gh-card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-hover);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
 }
 
 .gh-card:active {
   transform: translateY(0) scale(0.98);
-  transition-duration: 0.1s;
 }
 
 /* Top accent line with language color */
@@ -3272,16 +3252,15 @@ a { text-decoration: none; color: inherit; }
   color: inherit;
   overflow: hidden;
   max-width: 100%;
-  transition: border-color 0.3s ease, box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+  transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
   position: relative;
   animation: cardSlideIn 0.4s ease forwards;
   opacity: 0;
-  will-change: transform;
 }
 
 .trd-card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--border-hover);
+  box-shadow: var(--shadow-md);
   transform: translateY(-3px);
   background: var(--bg-card-hover);
 }
@@ -4353,7 +4332,6 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap;
   z-index: 10;
   box-shadow: var(--shadow-sm);
-  will-change: transform;
   transform: translateZ(0);
 }
 
@@ -4623,36 +4601,7 @@ button:focus-visible,
   border-radius: inherit;
 }
 
-/* --- Card shimmer shine on hover (lightweight GPU-only) --- */
-.gh-card::after,
-.pj-card::after,
-.trd-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    color-mix(in srgb, var(--accent) 4%, transparent) 45%,
-    color-mix(in srgb, var(--accent) 8%, transparent) 50%,
-    color-mix(in srgb, var(--accent) 4%, transparent) 55%,
-    transparent 60%
-  );
-  opacity: 0;
-  transform: translateX(-100%);
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 1;
-  border-radius: inherit;
-}
-
-.gh-card:hover::after,
-.pj-card:hover::after,
-.trd-card:hover::after {
-  opacity: 1;
-  transform: translateX(100%);
-  transition: opacity 0.3s ease, transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Card shimmer removed — ::after + translateX animation causes jank on scroll */
 
 /* --- Language chip enhanced interaction --- */
 .gh-lang-chip {
@@ -4677,13 +4626,9 @@ button:focus-visible,
   transform: translateY(-1px);
 }
 
-/* --- Rising badge pulse animation --- */
+/* --- Rising badge — static accent (no infinite pulse for perf) --- */
 .trd-rising-badge {
-  animation: risePulse 2s ease-in-out infinite;
-}
-@keyframes risePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.15); }
-  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
 }
 
 /* --- Medal shimmer for top 3 ranks --- */
@@ -4703,16 +4648,9 @@ button:focus-visible,
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* --- Better badge animations (status badges) --- */
-.trd-badge {
-  transition: all 0.22s ease;
-}
+/* --- Status badge — static (no infinite pulse for perf) --- */
 .trd-badge-ok {
-  animation: statusPulse 3s ease-in-out infinite;
-}
-@keyframes statusPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.1); }
-  50% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0); }
+  box-shadow: none;
 }
 
 /* --- Stats number counter-like font enhancement --- */
@@ -4787,12 +4725,6 @@ button:focus-visible,
   .trd-card:hover {
     transform: none;
     box-shadow: var(--shadow-sm);
-  }
-  
-  .gh-card::after,
-  .pj-card::after,
-  .trd-card::after {
-    display: none;
   }
   
   .gh-card:active,
