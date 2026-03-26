@@ -1,4 +1,4 @@
-/** layout.tsx — Refined minimal layout with floating pill nav + a11y */
+/** layout.tsx — Modern minimal layout: clean header + floating dock nav */
 import type { Lang } from './i18n'
 import { t } from './i18n'
 
@@ -11,13 +11,6 @@ interface LayoutProps {
 export function pageLayout({ lang, activePage, children }: LayoutProps) {
   const otherLang = lang === 'zh' ? 'en' : 'zh'
   const langLabel = lang === 'zh' ? 'EN' : '中'
-  const pageNames: Record<string, string> = {
-    home: lang === 'zh' ? '首页' : 'Home',
-    projects: lang === 'zh' ? '项目' : 'Projects',
-    github: 'GitHub',
-    downloads: lang === 'zh' ? '下载' : 'Downloads',
-    trending: lang === 'zh' ? '排行榜' : 'Trending',
-  }
 
   return (
     <div class="portal site">
@@ -26,19 +19,10 @@ export function pageLayout({ lang, activePage, children }: LayoutProps) {
         {lang === 'zh' ? '跳至主要内容' : 'Skip to main content'}
       </a>
 
-      {/* ===== FLOATING PILL HEADER ===== */}
+      {/* ===== MINIMAL HEADER — logo + utils only ===== */}
       <header class="header" id="siteHeader" role="banner">
         <div class="header-inner">
           <a href="/" class="logo" aria-label={lang === 'zh' ? '回到首页' : 'Go to home'}>portal<span class="logo-dot">.</span></a>
-
-          <nav class="nav-pill header-nav" id="headerNav" role="navigation" aria-label={lang === 'zh' ? '主导航' : 'Main navigation'}>
-            <a href="/" class={`nav-link ${activePage === 'home' ? 'active' : ''}`} aria-current={activePage === 'home' ? 'page' : undefined}>{t('nav', 'home', lang)}</a>
-            <a href="/projects" class={`nav-link ${activePage === 'projects' ? 'active' : ''}`} aria-current={activePage === 'projects' ? 'page' : undefined}>{t('nav', 'projects', lang)}</a>
-            <a href="/github" class={`nav-link ${activePage === 'github' ? 'active' : ''}`} aria-current={activePage === 'github' ? 'page' : undefined}>GitHub</a>
-            <a href="/downloads" class={`nav-link ${activePage === 'downloads' ? 'active' : ''}`} aria-current={activePage === 'downloads' ? 'page' : undefined}>{t('nav', 'downloads', lang)}</a>
-            <a href="/trending" class={`nav-link ${activePage === 'trending' ? 'active' : ''}`} aria-current={activePage === 'trending' ? 'page' : undefined}>{t('nav', 'trending', lang)}</a>
-            <span class="nav-indicator" id="navIndicator" aria-hidden="true"></span>
-          </nav>
 
           <div class="header-actions">
             <a href="/admin" class="header-btn header-icon-btn admin-entry" title={lang === 'zh' ? '后台管理' : 'Admin'} aria-label={lang === 'zh' ? '后台管理' : 'Admin panel'}>
@@ -50,14 +34,28 @@ export function pageLayout({ lang, activePage, children }: LayoutProps) {
             <button class="header-btn header-icon-btn theme-toggle" id="themeToggle" type="button" aria-label={lang === 'zh' ? '切换主题' : 'Toggle theme'} aria-live="polite">
               <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
             </button>
-            <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label={lang === 'zh' ? '菜单' : 'Menu'} aria-expanded="false" aria-controls="headerNav">
-              <span class="hamburger-line" aria-hidden="true"></span>
-              <span class="hamburger-line" aria-hidden="true"></span>
-              <span class="hamburger-line" aria-hidden="true"></span>
-            </button>
           </div>
         </div>
       </header>
+
+      {/* ===== FLOATING DOCK NAV — macOS Dock style ===== */}
+      <nav class="dock-nav" id="dockNav" role="navigation" aria-label={lang === 'zh' ? '主导航' : 'Main navigation'}>
+        <a href="/" class={`dock-item ${activePage === 'home' ? 'active' : ''}`} aria-current={activePage === 'home' ? 'page' : undefined} data-tooltip={lang === 'zh' ? '首页' : 'Home'}>
+          <i class="fa-solid fa-house"></i>
+        </a>
+        <a href="/projects" class={`dock-item ${activePage === 'projects' ? 'active' : ''}`} aria-current={activePage === 'projects' ? 'page' : undefined} data-tooltip={lang === 'zh' ? '项目' : 'Projects'}>
+          <i class="fa-solid fa-cube"></i>
+        </a>
+        <a href="/github" class={`dock-item ${activePage === 'github' ? 'active' : ''}`} aria-current={activePage === 'github' ? 'page' : undefined} data-tooltip="GitHub">
+          <i class="fa-brands fa-github"></i>
+        </a>
+        <a href="/downloads" class={`dock-item ${activePage === 'downloads' ? 'active' : ''}`} aria-current={activePage === 'downloads' ? 'page' : undefined} data-tooltip={lang === 'zh' ? '下载' : 'Downloads'}>
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </a>
+        <a href="/trending" class={`dock-item ${activePage === 'trending' ? 'active' : ''}`} aria-current={activePage === 'trending' ? 'page' : undefined} data-tooltip={lang === 'zh' ? '排行榜' : 'Trending'}>
+          <i class="fa-solid fa-fire-flame-curved"></i>
+        </a>
+      </nav>
 
       {/* ===== MAIN CONTENT ===== */}
       <main class="main" id="main-content" role="main">

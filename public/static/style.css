@@ -280,103 +280,143 @@ a { text-decoration: none; color: inherit; }
 
 
 /* ======================================
-   NAV — Pill-shaped centered navigation
+   DOCK NAV — Floating bottom navigation
+   macOS Dock-inspired, modern interaction
    ====================================== */
 
-.nav-pill {
+.dock-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+  padding: 10px 14px;
   background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.05);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.3s ease;
+}
+
+.dock-nav.dock-hidden {
+  transform: translateX(-50%) translateY(100px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dock-item {
   position: relative;
-}
-
-.header.scrolled .nav-pill {
-  background: var(--hover-bg);
-  backdrop-filter: none;
-  border-color: transparent;
-}
-
-.nav-link {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  font-weight: 500;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: transparent;
   color: var(--text-tertiary);
-  padding: 7px 16px;
-  border-radius: 999px;
-  transition: color 0.2s, background 0.2s;
-  letter-spacing: -0.01em;
-  position: relative;
-  z-index: 1;
-  white-space: nowrap;
+  font-size: 1.05rem;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.nav-link i {
-  font-size: 0.65rem;
-  opacity: 0.5;
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.nav-link:hover {
-  color: var(--text-secondary);
-}
-
-.nav-link:active {
-  transform: scale(0.95);
-  transition-duration: 0.06s;
-}
-
-.nav-link.active {
+.dock-item:hover {
   color: var(--text-primary);
-  font-weight: 600;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-xs);
+  background: var(--hover-bg);
+  transform: translateY(-4px) scale(1.12);
 }
 
-.nav-link.active i {
-  opacity: 1;
+.dock-item:active {
+  transform: translateY(0) scale(0.92);
+  transition-duration: 0.08s;
+}
+
+.dock-item.active {
   color: var(--accent);
+  background: var(--accent-soft);
 }
 
-[data-theme="dark"] .nav-link.active {
-  background: rgba(255,255,255,0.08);
-}
-
-/* Nav indicator — animated pill */
-.nav-indicator {
+.dock-item.active::after {
+  content: '';
   position: absolute;
-  top: 4px;
-  left: 0;
-  height: calc(100% - 8px);
-  background: var(--bg-card);
-  border-radius: 999px;
-  box-shadow: var(--shadow-xs);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.1, 1),
-              width 0.35s cubic-bezier(0.4, 0, 0.1, 1),
-              left 0.35s cubic-bezier(0.4, 0, 0.1, 1),
-              opacity 0.3s ease;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
 }
-.nav-indicator.visible { opacity: 1; }
 
-/* Also match old .header-nav selector for JS compat */
-.header-nav {
-  display: flex;
-  gap: 2px;
-  position: relative;
+/* Dock tooltip on hover */
+.dock-item::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 5px 12px;
+  background: var(--text-primary);
+  color: var(--bg);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  letter-spacing: 0;
 }
+
+.dock-item:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Dock magnification on neighbor items */
+.dock-item:hover + .dock-item {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.dock-item:has(+ .dock-item:hover) {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* Mobile dock adjustments */
+@media (max-width: 768px) {
+  .dock-nav {
+    bottom: 16px;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 18px;
+  }
+  .dock-item {
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+  }
+  .dock-item:hover { transform: none; }
+  .dock-item::before { display: none; }
+  .dock-item:hover + .dock-item,
+  .dock-item:has(+ .dock-item:hover) {
+    transform: none;
+  }
+}
+
+/* Old nav classes preserved for JS compat */
+.nav-pill, .header-nav { display: none; }
+.nav-link { display: none; }
+.nav-indicator { display: none; }
+.mobile-menu-btn { display: none; }
 
 
 /* ======================================
@@ -440,44 +480,11 @@ a { text-decoration: none; color: inherit; }
 
 
 /* ======================================
-   MOBILE MENU
+   MOBILE MENU (legacy — hidden, dock used instead)
    ====================================== */
 
-.mobile-menu-btn {
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.2s;
-}
-.mobile-menu-btn:hover { background: var(--hover-bg); }
-
-.hamburger-line {
-  display: block;
-  width: 16px;
-  height: 1.5px;
-  background: var(--text-secondary);
-  border-radius: 2px;
-  transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.mobile-menu-btn.open .hamburger-line:nth-child(1) {
-  transform: rotate(45deg) translate(3.5px, 3.5px);
-}
-.mobile-menu-btn.open .hamburger-line:nth-child(2) {
-  opacity: 0; transform: scaleX(0);
-}
-.mobile-menu-btn.open .hamburger-line:nth-child(3) {
-  transform: rotate(-45deg) translate(3.5px, -3.5px);
-}
+.mobile-menu-btn { display: none !important; }
+.hamburger-line { display: none; }
 
 
 /* ======================================
@@ -1161,49 +1168,6 @@ a { text-decoration: none; color: inherit; }
 @media (max-width: 768px) {
   .header-inner { padding: 10px 12px; }
 
-  /* Nav becomes slide-down panel */
-  .nav-pill,
-  .header-nav {
-    position: fixed;
-    top: 64px;
-    left: 12px;
-    right: 12px;
-    flex-direction: column;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 8px;
-    gap: 2px;
-    box-shadow: var(--shadow-lg);
-    opacity: 0;
-    transform: translateY(-10px);
-    pointer-events: none;
-    transition: opacity 0.2s, transform 0.2s;
-    z-index: 200;
-    backdrop-filter: none;
-  }
-
-  .nav-pill.mobile-open,
-  .header-nav.mobile-open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
-  .nav-link {
-    padding: 12px 16px;
-    font-size: 0.88rem;
-    border-radius: var(--radius-xs);
-  }
-  .nav-link.active {
-    background: var(--hover-bg);
-    box-shadow: none;
-  }
-  .nav-link i { width: 18px; text-align: center; }
-  .nav-indicator { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .admin-entry { display: none; }
-
   /* Hero responsive */
   .hero-section {
     padding: 72px 20px 40px;
@@ -1247,6 +1211,9 @@ a { text-decoration: none; color: inherit; }
   .nav-cards { grid-template-columns: 1fr; }
   .profile-name { font-size: 1.3rem; }
   .time-display { font-size: 2.6rem; }
+
+  /* Add bottom padding for dock nav */
+  .site-footer { padding-bottom: 100px; }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -1274,7 +1241,8 @@ a { text-decoration: none; color: inherit; }
 .page-transition {
   position: relative;
   will-change: transform, opacity;
-  padding-top: 72px;
+  padding-top: 64px;
+  padding-bottom: 80px; /* Space for dock nav */
 }
 
 @keyframes slideOutLeft {

@@ -177,116 +177,50 @@
   }
 
   // ==============================================
-  //  MOBILE MENU — instant touch response
+  //  DOCK NAV — auto-hide on scroll down, show on up
   // ==============================================
-  function initMobileMenu() {
-    const btn = document.getElementById('mobileMenuBtn');
-    const nav = document.getElementById('headerNav');
-    if (!btn || !nav) return;
+  function initDockNav() {
+    const dock = document.getElementById('dockNav');
+    if (!dock) return;
+    let lastScrollY = window.scrollY;
+    let ticking = false;
 
-    function closeMenu() {
-      btn.classList.remove('open');
-      nav.classList.remove('mobile-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-
-    // Use both touchstart (instant on mobile) and click (fallback for desktop)
-    let touchHandled = false;
-    const toggleMenu = (e) => {
-      if (e.type === 'touchstart') {
-        touchHandled = true;
-        e.preventDefault();
-      } else if (touchHandled) {
-        touchHandled = false;
-        return; // Skip click if touch already handled
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          // Hide dock when scrolling down past 200px, show when scrolling up
+          if (currentY > lastScrollY && currentY > 200) {
+            dock.classList.add('dock-hidden');
+          } else {
+            dock.classList.remove('dock-hidden');
+          }
+          lastScrollY = currentY;
+          ticking = false;
+        });
+        ticking = true;
       }
-      e.stopPropagation();
-      btn.classList.toggle('open');
-      nav.classList.toggle('mobile-open');
-      btn.setAttribute('aria-expanded', nav.classList.contains('mobile-open') ? 'true' : 'false');
     };
-    btn.addEventListener('touchstart', toggleMenu, { passive: false });
-    btn.addEventListener('click', toggleMenu);
 
-    // Nav links: close menu instantly on touchstart for zero delay
-    nav.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('touchstart', () => {
-        closeMenu();
-      }, { passive: true });
-      link.addEventListener('click', () => {
-        closeMenu();
-      });
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!nav.contains(e.target) && !btn.contains(e.target)) {
-        closeMenu();
-      }
-    });
-
-    // Close menu on touchstart outside (instant on mobile)
-    document.addEventListener('touchstart', (e) => {
-      if (nav.classList.contains('mobile-open') && !nav.contains(e.target) && !btn.contains(e.target)) {
-        closeMenu();
-      }
-    }, { passive: true });
+    window.removeEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
   // ==============================================
-  //  NAV INDICATOR
+  //  DOCK NAV — Active state management
   // ==============================================
-  let indicatorTimer = null;
-  let indicatorLocked = false; // true after click-nav, keeps indicator on active
-
-  function moveIndicator(el) {
-    const ind = document.getElementById('navIndicator');
-    if (!ind || !el) return;
-    if (indicatorTimer) { clearTimeout(indicatorTimer); indicatorTimer = null; }
-    const nav = el.parentElement;
-    const navRect = nav.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    ind.style.width = elRect.width + 'px';
-    ind.style.left = (elRect.left - navRect.left) + 'px';
-    ind.classList.add('visible');
-  }
-
-  function clearIndicator() {
-    // Just stay where we are — no snap-back at all.
-    // The indicator will move naturally when the user hovers another link
-    // or when the page changes (updateNavActive).
-  }
-
-  function initNavIndicator() {
-    document.querySelectorAll('.header-nav .nav-link').forEach(link => {
-      link.addEventListener('mouseenter', () => {
-        indicatorLocked = false;
-        moveIndicator(link);
-      });
-    });
-    const navContainer = document.querySelector('.header-nav');
-    if (navContainer) navContainer.addEventListener('mouseleave', () => {
-      // Smoothly return to active after mouse leaves nav area
-      indicatorTimer = setTimeout(() => {
-        indicatorTimer = null;
-        const active = document.querySelector('.nav-link.active');
-        if (active) moveIndicator(active);
-        indicatorLocked = true;
-      }, 300);
-    });
-
-    const active = document.querySelector('.nav-link.active');
-    if (active) requestAnimationFrame(() => { moveIndicator(active); indicatorLocked = true; });
-  }
 
   function updateNavActive(path) {
-    document.querySelectorAll('.header-nav .nav-link').forEach(link => {
-      const href = link.getAttribute('href');
-      link.classList.toggle('active', href === path);
-    });
-    requestAnimationFrame(() => {
-      const active = document.querySelector('.nav-link.active');
-      if (active) moveIndicator(active);
-      indicatorLocked = true;
+    // Update dock nav active states
+    document.querySelectorAll('.dock-item').forEach(item => {
+      const href = item.getAttribute('href');
+      const isActive = href === path;
+      item.classList.toggle('active', isActive);
+      if (isActive) {
+        item.setAttribute('aria-current', 'page');
+      } else {
+        item.removeAttribute('aria-current');
+      }
     });
   }
 
@@ -1115,8 +1049,7 @@
           // Re-init all behaviors
           lang = newLang;
           initHeaderScroll();
-          initMobileMenu();
-          initNavIndicator();
+          initDockNav();
           initPageBehaviors();
           attachSPALinks();
           initSidebarWidgets();
@@ -1135,8 +1068,7 @@
   //  INIT ON LOAD
   // ==============================================
   initHeaderScroll();
-  initMobileMenu();
-  initNavIndicator();
+  initDockNav();
   initPageBehaviors();
   attachSPALinks();
 
