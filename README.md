@@ -1,10 +1,15 @@
 # Portal — Personal Portal Website
 
-## Project Overview
-- **Name**: Portal (coral)
-- **Goal**: A feature-rich personal portal/homepage with admin dashboard, file sharing, GitHub trending, and more
-- **Tech Stack**: Hono + TypeScript + Cloudflare Pages + KV Storage
-- **GitHub**: https://github.com/miko2045/coral
+> A feature-rich personal portal and homepage with an integrated admin dashboard, file sharing system, GitHub trending tracker, and more.
+
+## 🚀 Project Overview
+
+| Feature | Details |
+| :--- | :--- |
+| **Project Name** | Portal (coral) |
+| **Tech Stack** | [Hono](https://hono.dev/) + TypeScript + Cloudflare Pages + KV Storage |
+| **Repository** | [FelixZoe/coral](https://github.com/FelixZoe/coral) |
+| **Key Features** | Admin Dashboard, File Sharing, i18n, GitHub Trending |
 
 ## Security Audit (2026-03-22)
 

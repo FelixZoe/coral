@@ -3,7 +3,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npx terser dist/static/app.js -o dist/static/app.js --compress drop_console=true,passes=2 --mangle toplevel --module && npx cleancss -o dist/static/style.css dist/static/style.css && npx cleancss -o dist/static/admin.css dist/static/admin.css && npx cleancss -o dist/static/fontawesome.css dist/static/fontawesome.css && node scripts/cachebust.mjs",
+    "build": "vite build && npm run optimize-assets && node scripts/cachebust.mjs",
+    "optimize-assets": "npm run optimize-js && npm run optimize-css",
+    "optimize-js": "npx terser dist/static/app.js -o dist/static/app.js --compress drop_console=true,passes=2 --mangle toplevel --module",
+    "optimize-css": "npx cleancss -o dist/static/style.css dist/static/style.css && npx cleancss -o dist/static/admin.css dist/static/admin.css && npx cleancss -o dist/static/fontawesome.css dist/static/fontawesome.css",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
